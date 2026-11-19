@@ -7,8 +7,9 @@
 --      insert into public.admin_users (email)
 --      values ('you@example.com')
 --      on conflict (email) do nothing;
--- 5. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.
--- 6. Restart the dev server if it is running.
+-- 5. Authentication -> Providers -> Email: leave "Allow new users to sign up" disabled.
+-- 6. Add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to .env.local.
+-- 7. Restart the dev server if it is running.
 
 create table if not exists public.categories (
   id uuid primary key default gen_random_uuid(),

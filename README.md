@@ -69,6 +69,10 @@ A payments education blog built with Next.js 16 (App Router), TypeScript, Tailwi
 
 Sign in to `/admin`, add categories, then create an article. The Tiptap editor supports headings, lists, quotes, inline code, links and images. Status can be `draft` or `published`; publishing calls `revalidatePath` so public routes refresh immediately. Blog and category routes are dynamic and do not use `generateStaticParams`.
 
+## Admin access
+
+Run `supabase/schema.sql`, create a Supabase Auth user, then insert that email into `public.admin_users`. `/admin/login` accepts email and password only; there is no public sign-up. `middleware.ts` refreshes the session and redirects unauthenticated or unauthorised users away from every `/admin/*` route except `/admin/login`. The admin sidebar links to Dashboard, All Blogs, Add New Blog, Categories and Support Requests.
+
 ## Placeholder details
 
 `lib/site-config.ts` holds the placeholder name, navigation and contact details. Replace the email, phone and hours before launch. `NEXT_PUBLIC_SITE_URL` should be your real deployment origin for canonical URLs and Open Graph metadata.

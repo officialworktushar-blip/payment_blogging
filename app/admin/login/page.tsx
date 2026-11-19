@@ -12,16 +12,27 @@ export const metadata: Metadata = {
 };
 
 interface AdminLoginPageProps {
-  searchParams: Promise<{ notice?: string }>;
+  searchParams: Promise<{ notice?: string; error?: string }>;
 }
+
+const errorMessages: Record<string, string> = {
+  unauthorized: "This account is not registered as an admin.",
+  admin_check: "Could not verify admin access. Please try again.",
+  signout: "The session could not be cleared. Please try again.",
+};
 
 export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
   const params = await searchParams;
   const needsSetup = params.notice === "setup";
+  const initialError =
+    typeof params.error === "string" ? (errorMessages[params.error] ?? "Sign-in failed.") : "";
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">
-      <Link href="/" className="inline-flex items-center gap-1.5 self-start text-sm text-slate-600 hover:text-slate-900">
+      <Link
+        href="/"
+        className="inline-flex items-center gap-1.5 self-start text-sm text-slate-600 hover:text-navy-900"
+      >
         <ArrowLeft aria-hidden="true" size={15} />
         Back to site
       </Link>
@@ -34,7 +45,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
           {siteConfig.name} admin
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
-          Sign in with a Supabase Auth account to manage articles and categories.
+          Sign in with an authorised Supabase account to manage blogs and categories.
         </p>
 
         {needsSetup ? (
@@ -45,7 +56,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         ) : null}
 
         <div className="mt-6">
-          <LoginForm />
+          <LoginForm initialError={initialError} />
         </div>
       </div>
     </main>
