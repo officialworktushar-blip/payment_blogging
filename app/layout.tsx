@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { PageProgress } from "@/components/animations/page-progress";
 import { siteConfig } from "@/lib/site-config";
 import "./globals.css";
 
@@ -26,7 +27,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body className="min-h-screen">{children}</body>
+      <body className="min-h-screen">
+        <PageProgress />
+        {children}
+      </body>
     </html>
   );
 }

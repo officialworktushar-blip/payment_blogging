@@ -1,10 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { FadeIn } from "@/components/animations/fade-in";
+import { Reveal, RevealItem } from "@/components/animations/reveal";
+import { ArticleCard } from "@/components/article-card";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
-import { PostCard } from "@/components/post-card";
-import { Stagger, StaggerItem } from "@/components/animations/stagger";
 import { filterPosts, getCategoryBySlug, getPublishedPosts } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -42,26 +42,35 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const posts = filterPosts(await getPublishedPosts(), { categorySlug: category.slug });
 
   return (
-    <Container className="py-12">
-      <FadeIn>
-        <p className="text-xs font-semibold uppercase tracking-widest text-brand-700">Category</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900">
+    <Container className="py-10">
+      <Breadcrumbs
+        items={[
+          { label: "Categories", href: "/categories" },
+          { label: category.name },
+        ]}
+      />
+
+      <Reveal>
+        <p className="mt-7 text-xs font-semibold uppercase tracking-widest text-brand-700">
+          Category
+        </p>
+        <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-navy-900">
           {category.name}
         </h1>
         <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
           {category.description ?? "Guides and explainers in this topic."}
         </p>
-      </FadeIn>
+      </Reveal>
 
       <div className="mt-9">
         {posts.length > 0 ? (
-          <Stagger className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Reveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => (
-              <StaggerItem key={post.id} className="h-full">
-                <PostCard post={post} />
-              </StaggerItem>
+              <RevealItem key={post.id} className="h-full">
+                <ArticleCard post={post} />
+              </RevealItem>
             ))}
-          </Stagger>
+          </Reveal>
         ) : (
           <EmptyState
             title="No articles in this category yet"

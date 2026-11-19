@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Clock3 } from "lucide-react";
-import { FadeIn } from "@/components/animations/fade-in";
-import { Stagger, StaggerItem } from "@/components/animations/stagger";
+import { Clock3 } from "lucide-react";
+import { Reveal, RevealItem } from "@/components/animations/reveal";
+import { ArticleCard } from "@/components/article-card";
+import { Breadcrumbs } from "@/components/breadcrumbs";
 import { CategoryPill } from "@/components/category-pill";
 import { Container } from "@/components/container";
-import { PostCard } from "@/components/post-card";
+import { ImagePlaceholder } from "@/components/image-placeholder";
 import { getPostBySlug, getPublishedPosts } from "@/lib/queries";
 import { siteConfig } from "@/lib/site-config";
 import { formatDate, makeExcerpt, readingMinutes, sanitizeHtml } from "@/lib/utils";
@@ -61,18 +61,20 @@ export default async function PostPage({ params }: PostPageProps) {
     .slice(0, 3);
 
   return (
-    <Container className="py-12">
-      <FadeIn>
-        <Link
-          href="/posts"
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-brand-700 hover:underline"
-        >
-          <ArrowLeft aria-hidden="true" size={15} />
-          All articles
-        </Link>
+    <Container className="py-10">
+      <Breadcrumbs
+        items={[
+          { label: "Blog", href: "/posts" },
+          ...(post.categories
+            ? [{ label: post.categories.name, href: `/categories/${post.categories.slug}` }]
+            : []),
+          { label: post.title },
+        ]}
+      />
 
-        <div className="mt-7 max-w-3xl">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <Reveal>
+        <div className="mx-auto mt-8 max-w-3xl text-center">
+          <div className="flex flex-wrap items-center justify-center gap-2 text-xs text-slate-500">
             <CategoryPill category={post.categories} />
             <span>{formatDate(post.published_at)}</span>
             <span className="inline-flex items-center gap-1">
@@ -80,16 +82,16 @@ export default async function PostPage({ params }: PostPageProps) {
               {readingMinutes(post.content)} min read
             </span>
           </div>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
+          <h1 className="mt-5 font-serif text-4xl font-semibold leading-tight tracking-tight text-navy-900 sm:text-5xl">
             {post.title}
           </h1>
           <p className="mt-4 text-base leading-7 text-slate-600">{post.excerpt}</p>
           <p className="mt-4 text-sm font-medium text-slate-500">By {post.author}</p>
         </div>
-      </FadeIn>
+      </Reveal>
 
-      {post.cover_image ? (
-        <FadeIn className="relative mt-8 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:h-96">
+      <Reveal className="relative mt-10 h-64 overflow-hidden rounded-2xl border border-slate-200 bg-slate-100 sm:h-96">
+        {post.cover_image ? (
           <Image
             src={post.cover_image}
             alt=""
@@ -98,31 +100,35 @@ export default async function PostPage({ params }: PostPageProps) {
             sizes="(max-width: 768px) 100vw, 1152px"
             className="object-cover"
           />
-        </FadeIn>
-      ) : null}
+        ) : (
+          <ImagePlaceholder label="Article hero image — 1600×900 payments illustration" />
+        )}
+      </Reveal>
 
-      <FadeIn className="mx-auto mt-10 max-w-3xl">
+      <Reveal className="mx-auto mt-10 max-w-3xl">
         <article
           className="article-content rounded-2xl border border-slate-200 bg-white p-6 sm:p-8"
           dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
         />
-      </FadeIn>
+      </Reveal>
 
-      <FadeIn className="mx-auto mt-8 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
-        This article is for education only. All names, numbers and identifiers used in examples are
-        fictional. Never share real OTPs, CVVs, passwords or card details.
-      </FadeIn>
+      <Reveal className="mx-auto mt-8 max-w-3xl rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-900">
+        Content is for education only, not financial or legal advice. Never share your OTP, PIN or
+        CVV with anyone.
+      </Reveal>
 
       {related.length > 0 ? (
         <section className="mt-16">
-          <h2 className="text-xl font-semibold tracking-tight text-slate-900">Keep reading</h2>
-          <Stagger className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <h2 className="font-serif text-2xl font-semibold tracking-tight text-navy-900">
+            Keep reading
+          </h2>
+          <Reveal className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {related.map((item) => (
-              <StaggerItem key={item.id} className="h-full">
-                <PostCard post={item} />
-              </StaggerItem>
+              <RevealItem key={item.id} className="h-full">
+                <ArticleCard post={item} />
+              </RevealItem>
             ))}
-          </Stagger>
+          </Reveal>
         </section>
       ) : null}
     </Container>

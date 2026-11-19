@@ -30,7 +30,7 @@ export default async function AdminLoginPage({ searchParams }: AdminLoginPagePro
         <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-brand-600 text-white">
           <ScanLine aria-hidden="true" size={20} />
         </span>
-        <h1 className="mt-5 text-2xl font-semibold tracking-tight text-slate-900">
+        <h1 className="mt-5 font-serif text-2xl font-semibold tracking-tight text-navy-900">
           {siteConfig.name} admin
         </h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">

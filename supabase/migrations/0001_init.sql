@@ -95,7 +95,8 @@ values
   ('Cards', 'cards', 'How card networks, issuers and acquirers work together.'),
   ('UPI and Wallets', 'upi-and-wallets', 'Instant transfers, handles and digital wallet basics.'),
   ('Gateways', 'gateways', 'The plumbing behind online checkout and settlement.'),
-  ('Security', 'security', 'Habits and red flags that help keep your money safe.')
+  ('Security', 'security', 'Habits and red flags that help keep your money safe.'),
+  ('Net Banking', 'net-banking', 'Online banking, transfers and account-to-account payments.')
 on conflict (slug) do nothing;
 
 insert into public.posts
@@ -156,4 +157,19 @@ select
   now() - interval '1 day'
 where not exists (
   select 1 from public.posts where slug = 'payment-scams-to-recognise'
+);
+
+insert into public.posts
+  (title, slug, excerpt, content, category_id, author, status, published_at)
+select
+  'Net banking transfers: IMPS, NEFT and RTGS explained',
+  'net-banking-transfers',
+  'Three account-to-account transfer modes and when each one makes sense.',
+  '<h2>Three ways to move money between accounts</h2><p>Net banking lets you move funds directly between bank accounts. IMPS is designed for immediate small transfers, NEFT batches transfers in cycles, and RTGS handles high value transfers in real time.</p><h2>Check before you confirm</h2><p>Verify the beneficiary name and account details shown by your bank. A demo beneficiary such as user@example is fictional; real transfers deserve a careful second look.</p><ul><li>Check limits and fees before confirming.</li><li>Save frequent beneficiaries only when you trust them.</li><li>Never enter an OTP or PIN shared by someone else.</li></ul>',
+  (select id from public.categories where slug = 'net-banking'),
+  'PayLens Team',
+  'published',
+  now() - interval '3 days'
+where not exists (
+  select 1 from public.posts where slug = 'net-banking-transfers'
 );

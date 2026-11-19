@@ -18,15 +18,15 @@ export default function ErrorPage({ error, reset }: ErrorPageProps) {
 
   return (
     <main className="mx-auto flex min-h-screen max-w-xl flex-col items-center justify-center px-4 text-center">
-      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700">
+      <span className="flex h-12 w-12 items-center justify-center rounded-full bg-error-light text-error-dark">
         <AlertTriangle aria-hidden="true" size={22} />
       </span>
-      <h1 className="mt-5 text-2xl font-semibold text-slate-900">Something went wrong</h1>
+      <h1 className="mt-5 font-serif text-3xl font-semibold text-navy-900">Something went wrong</h1>
       <p className="mt-2 text-sm leading-6 text-slate-600">
         The page could not be loaded. Try again, or head back to the homepage.
       </p>
       {showDetails ? (
-        <p className="mt-4 w-full rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left font-mono text-xs text-amber-900">
+        <p className="mt-4 w-full rounded-lg border border-error/30 bg-error-light px-3 py-2 text-left font-mono text-xs text-error-dark">
           {error.message}
         </p>
       ) : null}

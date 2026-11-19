@@ -4,6 +4,11 @@ export interface NavItem {
   description?: string;
 }
 
+export interface FooterColumn {
+  title: string;
+  links: NavItem[];
+}
+
 export interface ContactConfig {
   email: string;
   phone: string;
@@ -16,6 +21,7 @@ export interface SiteConfig {
   description: string;
   url: string;
   nav: NavItem[];
+  footerColumns: FooterColumn[];
   contact: ContactConfig;
 }
 
@@ -36,14 +42,47 @@ export const siteConfig: SiteConfig = {
   name: "PayLens",
   tagline: "Plain-language guides to the money-moving world",
   description:
-    "PayLens explains cards, UPI, wallets, gateways and payment safety with practical, jargon-free examples for curious readers.",
+    "PayLens explains cards, UPI, wallets, gateways, net banking and payment safety with practical, jargon-free examples for curious readers.",
   url: getSiteUrl(),
   nav: [
-    { label: "Home", href: "/", description: "Latest explanations and guides" },
-    { label: "Articles", href: "/posts", description: "Browse every article" },
-    { label: "Categories", href: "/categories", description: "Explore by topic" },
-    { label: "About", href: "/about", description: "Why PayLens exists" },
-    { label: "Contact", href: "/contact", description: "Get in touch" },
+    { label: "Home", href: "/" },
+    { label: "Payment Gateways", href: "/categories/gateways" },
+    { label: "UPI & Wallets", href: "/categories/upi-and-wallets" },
+    { label: "Cards", href: "/categories/cards" },
+    { label: "Net Banking", href: "/categories/net-banking" },
+    { label: "Payment Security", href: "/categories/security" },
+    { label: "Blog", href: "/posts" },
+    { label: "Contact Support+", href: "/contact" },
+    { label: "About Us", href: "/about" },
+  ],
+  footerColumns: [
+    {
+      title: "Explore",
+      links: [
+        { label: "Home", href: "/" },
+        { label: "Blog", href: "/posts" },
+        { label: "About Us", href: "/about" },
+        { label: "Contact Support+", href: "/contact" },
+      ],
+    },
+    {
+      title: "Topics",
+      links: [
+        { label: "Payment Gateways", href: "/categories/gateways" },
+        { label: "UPI & Wallets", href: "/categories/upi-and-wallets" },
+        { label: "Cards", href: "/categories/cards" },
+        { label: "Net Banking", href: "/categories/net-banking" },
+        { label: "Payment Security", href: "/categories/security" },
+      ],
+    },
+    {
+      title: "Resources",
+      links: [
+        { label: "All categories", href: "/categories" },
+        { label: "Search articles", href: "/posts" },
+        { label: "Admin", href: "/admin/login" },
+      ],
+    },
   ],
   contact: {
     email: "hello@paylens.example",

@@ -29,7 +29,7 @@ A payments education blog built with Next.js 16 (App Router), TypeScript, Tailwi
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — anon/public key
    - `NEXT_PUBLIC_SITE_URL` — e.g. `http://localhost:3000`
 
-3. In the Supabase SQL Editor, run `supabase/migrations/0001_init.sql`. It is safe to re-run and creates the `posts` and `categories` tables, RLS policies, the `post-images` storage bucket, policies and four seeded articles.
+3. In the Supabase SQL Editor, run `supabase/migrations/0001_init.sql`. It is safe to re-run and creates the `posts` and `categories` tables, RLS policies, the `post-images` storage bucket, policies and five seeded articles.
 
 4. Create an auth user in Supabase (Authentication -> Users -> Add user). Any authenticated user can access `/admin` in this starter.
 
@@ -56,6 +56,14 @@ A payments education blog built with Next.js 16 (App Router), TypeScript, Tailwi
 - `components/` — shared UI, `components/animations/` for motion wrappers
 - `lib/` — site config, types, Supabase clients, queries, server actions, utilities
 - `supabase/migrations/` — SQL schema, policies and seed content
+
+## Design system
+
+- White page background with a deep navy hero and footer, one violet/blue accent, `success` green `#16a34a` and `error` red `#dc2626`.
+- Serif headings for article content and page titles; sans-serif for UI.
+- Shared public UI lives in `components/`: `ArticleCard`, `HeroFeatured`, `CategorySection`, `Breadcrumbs`, `Pagination` and `ImagePlaceholder`.
+- `components/animations/` holds lightweight `motion`/CSS/SVG effects: `PaymentFlowHero`, `FlipCard`, `QRScan`, `PaymentMethodsStrip`, `FloatingCoins`, `SecurityShield`, `CountUp`, `Reveal` and `PageProgress`.
+- Every animation honours `prefers-reduced-motion`; the payment-method marquee also pauses on hover.
 
 ## Editing content
 

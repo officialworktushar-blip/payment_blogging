@@ -8,7 +8,7 @@ export default function NotFound() {
         <Compass aria-hidden="true" size={22} />
       </span>
       <p className="mt-5 text-sm font-semibold uppercase tracking-widest text-brand-700">404</p>
-      <h1 className="mt-2 text-2xl font-semibold text-slate-900">Page not found</h1>
+      <h1 className="mt-2 font-serif text-3xl font-semibold text-navy-900">Page not found</h1>
       <p className="mt-2 text-sm leading-6 text-slate-600">
         The article or page you were looking for may have moved.
       </p>
