@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseEnv } from "@/lib/supabase/env";
 import type { Database } from "@/lib/types";
 
 interface CookieToSet {
@@ -9,16 +10,10 @@ interface CookieToSet {
 }
 
 export async function createClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseKey) {
-    return null;
-  }
-
+  const { url, anonKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(supabaseUrl, supabaseKey, {
+  return createServerClient<Database>(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
