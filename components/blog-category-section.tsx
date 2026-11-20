@@ -4,6 +4,7 @@ import type { LucideIcon } from "lucide-react";
 import { Reveal, RevealItem } from "@/components/animations/reveal";
 import { BlogCard } from "@/components/blog-card";
 import { Container } from "@/components/container";
+import { categoryHref } from "@/lib/categories";
 import { countBlogsByCategory, filterBlogsByCategorySlug } from "@/lib/queries";
 import type { BlogWithCategory, CategoryRow } from "@/lib/types";
 
@@ -75,7 +76,7 @@ export function BlogCategorySection({
                       </div>
                     </div>
                     <Link
-                      href={`/${category.slug}`}
+                      href={categoryHref(category.slug)}
                       className="arrow-link inline-flex items-center gap-1 text-sm font-semibold text-brand-700"
                     >
                       View all

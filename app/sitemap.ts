@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { CATEGORY_SLUG_SET, categoryHref } from "@/lib/categories";
 import { getCategories, getPublishedBlogs } from "@/lib/queries";
 import { siteConfig } from "@/lib/site-config";
 
@@ -15,14 +16,6 @@ const STATIC_PATHS = [
   "/terms",
 ];
 
-const PUBLIC_CATEGORY_SLUGS: ReadonlySet<string> = new Set([
-  "payment-gateways",
-  "upi-wallets",
-  "cards",
-  "net-banking",
-  "payment-security",
-]);
-
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [blogs, categories] = await Promise.all([getPublishedBlogs(), getCategories()]);
   const now = new Date();
@@ -35,9 +28,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const categoryEntries: MetadataRoute.Sitemap = categories
-    .filter((category) => PUBLIC_CATEGORY_SLUGS.has(category.slug))
+    .filter((category) => CATEGORY_SLUG_SET.has(category.slug))
     .map((category) => ({
-      url: new URL(`/${category.slug}`, siteConfig.url).toString(),
+      url: new URL(categoryHref(category.slug), siteConfig.url).toString(),
       lastModified: now,
       changeFrequency: "weekly",
       priority: 0.6,

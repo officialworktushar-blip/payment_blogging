@@ -3,6 +3,7 @@ import { ArrowRight, Coins, CreditCard, Landmark, ShieldCheck, Store, Wallet } f
 import type { LucideIcon } from "lucide-react";
 import { Reveal, RevealItem } from "@/components/animations/reveal";
 import { Container } from "@/components/container";
+import { categoryHref } from "@/lib/categories";
 import { countBlogsByCategory } from "@/lib/queries";
 import type { BlogWithCategory, CategoryRow } from "@/lib/types";
 
@@ -56,7 +57,7 @@ export function CategorySection({
               return (
                 <RevealItem key={category.id} className="h-full">
                   <Link
-                    href={`/${category.slug}`}
+                    href={categoryHref(category.slug)}
                     className="category-tile hover-lift group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6"
                   >
                     <span className="category-tile-icon flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">

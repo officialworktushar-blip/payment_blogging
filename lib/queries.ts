@@ -1,17 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import type { BlogWithCategory, CategoryRow, CategorySummary, SupportRequest } from "@/lib/types";
 
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
+interface SupabaseClientResult {
+  client: SupabaseClient | null;
+  error: string | null;
+}
+
 function logQueryError(context: string, message: string): void {
   console.error(`${context}: ${message}`);
 }
 
-async function getSupabaseClient() {
+async function getSupabaseClientResult(): Promise<SupabaseClientResult> {
   try {
-    return await createClient();
+    return { client: await createClient(), error: null };
   } catch (caught: unknown) {
-    logQueryError("getSupabaseClient", caught instanceof Error ? caught.message : "Unknown error");
-    return null;
+    const message = caught instanceof Error ? caught.message : "Unknown error";
+    logQueryError("getSupabaseClient", message);
+    return { client: null, error: message };
   }
+}
+
+async function getSupabaseClient(): Promise<SupabaseClient | null> {
+  return (await getSupabaseClientResult()).client;
 }
 
 export function filterPosts(
@@ -67,10 +79,12 @@ export async function getCategories(): Promise<CategoryRow[]> {
   return (data ?? []) as CategoryRow[];
 }
 
-export async function getCategoryBySlug(slug: string): Promise<CategoryRow | null> {
-  const supabase = await getSupabaseClient();
+export async function getCategoryBySlugResult(
+  slug: string,
+): Promise<{ data: CategoryRow | null; error: string | null }> {
+  const { client: supabase, error: clientError } = await getSupabaseClientResult();
   if (!supabase) {
-    return null;
+    return { data: null, error: clientError ?? "Supabase client unavailable." };
   }
 
   const { data, error } = await supabase
@@ -81,10 +95,15 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
 
   if (error) {
     logQueryError("getCategoryBySlug", error.message);
-    return null;
+    return { data: null, error: error.message };
   }
 
-  return (data ?? null) as CategoryRow | null;
+  return { data: (data ?? null) as CategoryRow | null, error: null };
+}
+
+export async function getCategoryBySlug(slug: string): Promise<CategoryRow | null> {
+  const { data } = await getCategoryBySlugResult(slug);
+  return data;
 }
 
 export async function getAdminPosts(): Promise<BlogWithCategory[]> {
@@ -209,6 +228,29 @@ export async function getPublishedBlogs(): Promise<BlogWithCategory[]> {
   return (data ?? []) as unknown as BlogWithCategory[];
 }
 
+export async function getPublishedBlogsByCategoryIdResult(
+  categoryId: string,
+): Promise<{ data: BlogWithCategory[]; error: string | null }> {
+  const { client: supabase, error: clientError } = await getSupabaseClientResult();
+  if (!supabase) {
+    return { data: [], error: clientError ?? "Supabase client unavailable." };
+  }
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("category_id", categoryId)
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    logQueryError("getPublishedBlogsByCategoryId", error.message);
+    return { data: [], error: error.message };
+  }
+
+  return { data: (data ?? []) as unknown as BlogWithCategory[], error: null };
+}
+
 export async function getFeaturedBlogs(limit = 3): Promise<BlogWithCategory[]> {
   const blogs = await getPublishedBlogs();
   const featured = blogs.filter((blog) => blog.is_featured);
@@ -216,10 +258,12 @@ export async function getFeaturedBlogs(limit = 3): Promise<BlogWithCategory[]> {
   return [...featured, ...rest].slice(0, limit);
 }
 
-export async function getPublicBlogBySlug(slug: string): Promise<BlogWithCategory | null> {
-  const supabase = await getSupabaseClient();
+export async function getPublicBlogBySlugResult(
+  slug: string,
+): Promise<{ data: BlogWithCategory | null; error: string | null }> {
+  const { client: supabase, error: clientError } = await getSupabaseClientResult();
   if (!supabase) {
-    return null;
+    return { data: null, error: clientError ?? "Supabase client unavailable." };
   }
 
   const { data, error } = await supabase
@@ -231,10 +275,15 @@ export async function getPublicBlogBySlug(slug: string): Promise<BlogWithCategor
 
   if (error) {
     logQueryError("getPublicBlogBySlug", error.message);
-    return null;
+    return { data: null, error: error.message };
   }
 
-  return (data ?? null) as unknown as BlogWithCategory | null;
+  return { data: (data ?? null) as unknown as BlogWithCategory | null, error: null };
+}
+
+export async function getPublicBlogBySlug(slug: string): Promise<BlogWithCategory | null> {
+  const { data } = await getPublicBlogBySlugResult(slug);
+  return data;
 }
 
 export function filterBlogsByCategorySlug(

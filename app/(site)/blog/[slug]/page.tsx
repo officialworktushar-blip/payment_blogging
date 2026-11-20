@@ -10,8 +10,9 @@ import { CategoryPill } from "@/components/category-pill";
 import { Container } from "@/components/container";
 import { ImagePlaceholder } from "@/components/image-placeholder";
 import { ShareBar } from "@/components/share-bar";
+import { categoryHref } from "@/lib/categories";
 import {
-  getPublicBlogBySlug,
+  getPublicBlogBySlugResult,
   getPublishedBlogs,
   getRelatedBlogs,
 } from "@/lib/queries";
@@ -20,13 +21,44 @@ import { formatDate, makeExcerpt, readingMinutes, sanitizeHtml } from "@/lib/uti
 
 export const dynamic = "force-dynamic";
 
+const isDev = process.env.NODE_ENV === "development";
+
 interface BlogArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
+function debugLog(slug: string, error: string | null, rowCount: number): void {
+  if (!isDev) {
+    return;
+  }
+
+  console.log("[blog-article-page]", { slug, error, rowCount });
+}
+
+function QueryErrorState({ message }: { message: string }) {
+  return (
+    <Container className="py-10">
+      <Breadcrumbs items={[{ label: "Blog", href: "/blog" }, { label: "Article unavailable" }]} />
+      <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
+        <h1 className="font-serif text-2xl font-semibold text-red-900">Could not load this article</h1>
+        <p className="mt-2 text-sm leading-7 text-red-800">
+          {isDev ? message : "There was a problem loading this page. Please try again later."}
+        </p>
+      </div>
+    </Container>
+  );
+}
+
 export async function generateMetadata({ params }: BlogArticlePageProps): Promise<Metadata> {
   const { slug } = await params;
-  const blog = await getPublicBlogBySlug(slug);
+  const { data: blog, error } = await getPublicBlogBySlugResult(slug);
+
+  debugLog(slug, error, blog ? 1 : 0);
+
+  if (error) {
+    console.error(`generateMetadata blog ${slug}: ${error}`);
+    return { title: "Article unavailable", robots: { index: false, follow: false } };
+  }
 
   if (!blog) {
     return {
@@ -56,7 +88,17 @@ export async function generateMetadata({ params }: BlogArticlePageProps): Promis
 
 export default async function BlogArticlePage({ params }: BlogArticlePageProps) {
   const { slug } = await params;
-  const blog = await getPublicBlogBySlug(slug);
+  const { data: blog, error } = await getPublicBlogBySlugResult(slug);
+
+  if (error) {
+    console.error(`BlogArticlePage ${slug}: ${error}`);
+  }
+
+  debugLog(slug, error, blog ? 1 : 0);
+
+  if (error) {
+    return <QueryErrorState message={error} />;
+  }
 
   if (!blog) {
     notFound();
@@ -92,7 +134,7 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
           items={[
             { label: "Blog", href: "/blog" },
             ...(blog.categories
-              ? [{ label: blog.categories.name, href: `/${blog.categories.slug}` }]
+              ? [{ label: blog.categories.name, href: categoryHref(blog.categories.slug) }]
               : []),
             { label: blog.title },
           ]}

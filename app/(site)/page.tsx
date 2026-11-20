@@ -14,6 +14,7 @@ import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
 import { NewsletterCta } from "@/components/newsletter-cta";
 import { SearchForm } from "@/components/search-form";
+import { categoryHref } from "@/lib/categories";
 import { getCategories, getFeaturedBlogs, getPublishedBlogs } from "@/lib/queries";
 import { siteConfig } from "@/lib/site-config";
 
@@ -192,7 +193,7 @@ export default async function HomePage() {
               unusual request with your bank or provider through a channel you already trust.
             </p>
             <Link
-              href="/payment-security"
+              href={categoryHref("payment-security")}
               className="arrow-link mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-200"
             >
               Read the safety guides

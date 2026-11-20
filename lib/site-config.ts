@@ -1,3 +1,5 @@
+import { CATEGORY_LINKS } from "@/lib/categories";
+
 export interface NavItem {
   label: string;
   href: string;
@@ -46,11 +48,7 @@ export const siteConfig: SiteConfig = {
   url: getSiteUrl(),
   nav: [
     { label: "Home", href: "/" },
-    { label: "Payment Gateways", href: "/payment-gateways" },
-    { label: "UPI & Wallets", href: "/upi-wallets" },
-    { label: "Cards", href: "/cards" },
-    { label: "Net Banking", href: "/net-banking" },
-    { label: "Payment Security", href: "/payment-security" },
+    ...CATEGORY_LINKS,
     { label: "Blog", href: "/blog" },
     { label: "Contact Support+", href: "/contact-support" },
     { label: "About Us", href: "/about-us" },
@@ -67,13 +65,7 @@ export const siteConfig: SiteConfig = {
     },
     {
       title: "Topics",
-      links: [
-        { label: "Payment Gateways", href: "/payment-gateways" },
-        { label: "UPI & Wallets", href: "/upi-wallets" },
-        { label: "Cards", href: "/cards" },
-        { label: "Net Banking", href: "/net-banking" },
-        { label: "Payment Security", href: "/payment-security" },
-      ],
+      links: [...CATEGORY_LINKS],
     },
     {
       title: "Resources",

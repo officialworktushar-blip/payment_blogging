@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { categoryHref } from "@/lib/categories";
 import type { CategorySummary } from "@/lib/types";
 
 interface CategoryPillProps {
@@ -16,7 +17,7 @@ export function CategoryPill({ category }: CategoryPillProps) {
 
   return (
     <Link
-      href={`/${category.slug}`}
+      href={categoryHref(category.slug)}
       className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
     >
       {category.name}
