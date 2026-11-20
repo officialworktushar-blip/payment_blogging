@@ -51,6 +51,17 @@ create table if not exists public.admin_users (
   email text primary key
 );
 
+create table if not exists public.support_requests (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  email text not null,
+  topic text not null,
+  message text not null,
+  status text not null default 'open' check (status in ('open', 'resolved')),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
 create or replace function public.set_blogs_updated_at()
 returns trigger
 language plpgsql
@@ -65,6 +76,21 @@ drop trigger if exists blogs_set_updated_at on public.blogs;
 create trigger blogs_set_updated_at
 before update on public.blogs
 for each row execute function public.set_blogs_updated_at();
+
+create or replace function public.set_support_requests_updated_at()
+returns trigger
+language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists support_requests_set_updated_at on public.support_requests;
+create trigger support_requests_set_updated_at
+before update on public.support_requests
+for each row execute function public.set_support_requests_updated_at();
 
 insert into public.categories (name, slug, description, sort_order)
 values
@@ -123,6 +149,7 @@ grant execute on function public.is_admin() to anon, authenticated;
 alter table public.categories enable row level security;
 alter table public.blogs enable row level security;
 alter table public.admin_users enable row level security;
+alter table public.support_requests enable row level security;
 
 drop policy if exists "Categories are readable by everyone" on public.categories;
 create policy "Categories are readable by everyone"
@@ -179,3 +206,22 @@ create policy "Users read own admin row"
 on public.admin_users for select
 to authenticated
 using (lower(email) = lower(auth.jwt() ->> 'email'));
+
+drop policy if exists "Anyone can submit support requests" on public.support_requests;
+create policy "Anyone can submit support requests"
+on public.support_requests for insert
+to anon, authenticated
+with check (true);
+
+drop policy if exists "Admins read support requests" on public.support_requests;
+create policy "Admins read support requests"
+on public.support_requests for select
+to authenticated
+using (public.is_admin());
+
+drop policy if exists "Admins update support requests" on public.support_requests;
+create policy "Admins update support requests"
+on public.support_requests for update
+to authenticated
+using (public.is_admin())
+with check (public.is_admin());

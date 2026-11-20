@@ -88,4 +88,5 @@ export interface ActionResult {
 }
 
 export type CategoryRow = Category;
+export type CategoryPublic = Pick<Category, "id" | "name" | "slug" | "description">;
 export type BlogRow = Blog;

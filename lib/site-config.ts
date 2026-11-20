@@ -34,7 +34,10 @@ function getSiteUrl(): string {
   }
 
   try {
-    return new URL(configuredUrl).origin;
+    const withProtocol = /^https?:\/\//i.test(configuredUrl)
+      ? configuredUrl
+      : `https://${configuredUrl}`;
+    return new URL(withProtocol).origin;
   } catch {
     return "http://localhost:3000";
   }

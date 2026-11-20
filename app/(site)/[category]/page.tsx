@@ -9,6 +9,7 @@ import { categoryHref, isCategorySlug } from "@/lib/categories";
 import {
   getCategoryBySlugResult,
   getPublishedBlogsByCategoryIdResult,
+  type QueryError,
 } from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
@@ -19,17 +20,32 @@ interface CategoryPageProps {
   params: Promise<{ category: string }>;
 }
 
+function logCategoryError(slug: string, error: QueryError): void {
+  console.error("[category]", {
+    slug,
+    message: error.message,
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
 function debugLog(
   slug: string,
-  categoryError: string | null,
-  blogError: string | null,
+  categoryError: QueryError | null,
+  blogError: QueryError | null,
   rowCount: number,
 ): void {
   if (!isDev) {
     return;
   }
 
-  console.log("[category-page]", { slug, categoryError, blogError, rowCount });
+  console.log("[category-page]", {
+    slug,
+    categoryError,
+    blogError,
+    rowCount,
+  });
 }
 
 function QueryErrorState({ message }: { message: string }) {
@@ -37,7 +53,7 @@ function QueryErrorState({ message }: { message: string }) {
     <Container className="py-10">
       <Breadcrumbs items={[{ label: "Category" }]} />
       <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
-        <h1 className="font-serif text-2xl font-semibold text-red-900">
+        <h1 className="mt-7 font-serif text-2xl font-semibold text-red-900">
           Could not load this category
         </h1>
         <p className="mt-2 text-sm leading-7 text-red-800">
@@ -57,16 +73,13 @@ export async function generateMetadata({ params }: CategoryPageProps): Promise<M
 
   const { data: categoryRow, error } = await getCategoryBySlugResult(category);
 
-  if (isDev) {
-    console.log("[category-metadata]", {
-      slug: category,
-      error,
-      rowCount: categoryRow ? 1 : 0,
-    });
+  if (error) {
+    logCategoryError(category, error);
   }
 
+  debugLog(category, error, null, categoryRow ? 1 : 0);
+
   if (error) {
-    console.error(`generateMetadata category ${category}: ${error}`);
     return { title: "Category unavailable", robots: { index: false, follow: false } };
   }
 
@@ -91,9 +104,9 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
   const { data: categoryRow, error: categoryError } = await getCategoryBySlugResult(category);
 
   if (categoryError) {
-    console.error(`CategoryPage category ${category}: ${categoryError}`);
+    logCategoryError(category, categoryError);
     debugLog(category, categoryError, null, 0);
-    return <QueryErrorState message={categoryError} />;
+    return <QueryErrorState message={categoryError.message} />;
   }
 
   if (!categoryRow) {
@@ -103,16 +116,17 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
 
   const { data: blogs, error: blogsError } = await getPublishedBlogsByCategoryIdResult(
     categoryRow.id,
+    category,
   );
 
   if (blogsError) {
-    console.error(`CategoryPage blogs ${category}: ${blogsError}`);
+    logCategoryError(category, blogsError);
   }
 
   debugLog(category, categoryError, blogsError, blogs.length);
 
   if (blogsError) {
-    return <QueryErrorState message={blogsError} />;
+    return <QueryErrorState message={blogsError.message} />;
   }
 
   return (

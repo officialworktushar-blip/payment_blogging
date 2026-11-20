@@ -8,17 +8,33 @@ interface CookieToSet {
   options: CookieOptions;
 }
 
+type CookieStore = Awaited<ReturnType<typeof cookies>>;
+
 export async function createClient() {
   const { url, anonKey } = getSupabaseEnv();
-  const cookieStore = await cookies();
+  let cookieStore: CookieStore | null = null;
+
+  try {
+    cookieStore = await cookies();
+  } catch (caught: unknown) {
+    console.error("[supabase] cookies()", caught instanceof Error ? caught.message : "Unknown error");
+  }
 
   return createServerClient(url, anonKey, {
     cookies: {
       getAll() {
-        return cookieStore.getAll();
+        try {
+          return cookieStore?.getAll() ?? [];
+        } catch {
+          return [];
+        }
       },
       setAll(cookiesToSet: CookieToSet[]) {
         try {
+          if (!cookieStore) {
+            return;
+          }
+
           cookiesToSet.forEach(({ name, value, options }) => {
             cookieStore.set(name, value, options);
           });

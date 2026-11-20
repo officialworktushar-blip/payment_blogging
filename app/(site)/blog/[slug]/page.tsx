@@ -15,6 +15,7 @@ import {
   getPublicBlogBySlugResult,
   getPublishedBlogs,
   getRelatedBlogs,
+  type QueryError,
 } from "@/lib/queries";
 import { siteConfig } from "@/lib/site-config";
 import { formatDate, makeExcerpt, readingMinutes, sanitizeHtml } from "@/lib/utils";
@@ -27,7 +28,17 @@ interface BlogArticlePageProps {
   params: Promise<{ slug: string }>;
 }
 
-function debugLog(slug: string, error: string | null, rowCount: number): void {
+function logBlogError(slug: string, error: QueryError): void {
+  console.error("[blog]", {
+    slug,
+    message: error.message,
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
+function debugLog(slug: string, error: QueryError | null, rowCount: number): void {
   if (!isDev) {
     return;
   }
@@ -56,7 +67,7 @@ export async function generateMetadata({ params }: BlogArticlePageProps): Promis
   debugLog(slug, error, blog ? 1 : 0);
 
   if (error) {
-    console.error(`generateMetadata blog ${slug}: ${error}`);
+    logBlogError(slug, error);
     return { title: "Article unavailable", robots: { index: false, follow: false } };
   }
 
@@ -91,13 +102,13 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
   const { data: blog, error } = await getPublicBlogBySlugResult(slug);
 
   if (error) {
-    console.error(`BlogArticlePage ${slug}: ${error}`);
+    logBlogError(slug, error);
   }
 
   debugLog(slug, error, blog ? 1 : 0);
 
   if (error) {
-    return <QueryErrorState message={error} />;
+    return <QueryErrorState message={error.message} />;
   }
 
   if (!blog) {

@@ -8,7 +8,12 @@ import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
 import { Pagination } from "@/components/pagination";
 import { SearchForm } from "@/components/search-form";
-import { filterBlogsByCategorySlug, getCategories, getPublishedBlogs } from "@/lib/queries";
+import {
+  filterBlogsByCategorySlug,
+  getCategoriesResult,
+  getPublishedBlogsResult,
+  type QueryError,
+} from "@/lib/queries";
 
 export const dynamic = "force-dynamic";
 
@@ -19,19 +24,75 @@ export const metadata: Metadata = {
 };
 
 const PAGE_SIZE = 6;
+const isDev = process.env.NODE_ENV === "development";
 
 interface BlogPageProps {
   searchParams: Promise<{ category?: string | string[]; page?: string | string[] }>;
 }
 
+function logBlogIndexError(slug: string, error: QueryError): void {
+  console.error("/blog", {
+    slug,
+    message: error.message,
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+  });
+}
+
+function QueryErrorState({ message }: { message: string }) {
+  return (
+    <Container className="py-10">
+      <Breadcrumbs items={[{ label: "Blog" }]} />
+      <div className="mt-8 rounded-2xl border border-red-200 bg-red-50 p-6">
+        <h1 className="font-serif text-2xl font-semibold text-red-900">Could not load the blog</h1>
+        <p className="mt-2 text-sm leading-7 text-red-800">
+          {isDev ? message : "There was a problem loading this page. Please try again later."}
+        </p>
+      </div>
+    </Container>
+  );
+}
+
 export default async function BlogPage({ searchParams }: BlogPageProps) {
   const params = await searchParams;
-  const categorySlug = typeof params.category === "string" ? params.category : "";
+  const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
+  const categorySlug = typeof categoryParam === "string" ? categoryParam : "";
+  const slug = categorySlug || "all";
   const pageParam = Array.isArray(params.page) ? params.page[0] : params.page;
   const requestedPage = Number.parseInt(pageParam ?? "1", 10);
-  const safePage = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const safePage = Number.isFinite(requestedPage) && requestedPage > 0 ? Math.floor(requestedPage) : 1;
 
-  const [allBlogs, categories] = await Promise.all([getPublishedBlogs(), getCategories()]);
+  const [blogsResult, categoriesResult] = await Promise.all([
+    getPublishedBlogsResult("/blog", slug),
+    getCategoriesResult("/blog", slug),
+  ]);
+
+  const firstError = blogsResult.error ?? categoriesResult.error;
+  if (blogsResult.error) {
+    logBlogIndexError(slug, blogsResult.error);
+  }
+
+  if (categoriesResult.error) {
+    logBlogIndexError(slug, categoriesResult.error);
+  }
+
+  if (isDev) {
+    console.log("[blog-page]", {
+      slug,
+      error: firstError,
+      rowCount: blogsResult.data.length,
+      categoryCount: categoriesResult.data.length,
+      page: safePage,
+    });
+  }
+
+  if (firstError) {
+    return <QueryErrorState message={firstError.message} />;
+  }
+
+  const allBlogs = blogsResult.data;
+  const categories = categoriesResult.data;
   const activeCategory = categories.find((category) => category.slug === categorySlug);
   const blogs = categorySlug ? filterBlogsByCategorySlug(allBlogs, categorySlug) : allBlogs;
   const totalPages = Math.max(1, Math.ceil(blogs.length / PAGE_SIZE));
@@ -41,7 +102,11 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
   return (
     <Container className="py-10">
       <Breadcrumbs
-        items={activeCategory ? [{ label: "Blog", href: "/blog" }, { label: activeCategory.name }] : [{ label: "Blog" }]}
+        items={
+          activeCategory
+            ? [{ label: "Blog", href: "/blog" }, { label: activeCategory.name }]
+            : [{ label: "Blog" }]
+        }
       />
 
       <Reveal>
@@ -70,7 +135,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
         {categories.map((category) => (
           <Link
             key={category.id}
-            href={`/blog?category=${category.slug}`}
+            href={`/blog?category=${encodeURIComponent(category.slug)}`}
             className={`rounded-full px-3 py-1.5 text-xs font-medium ${
               categorySlug === category.slug
                 ? "bg-brand-600 text-white"
@@ -95,7 +160,12 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                 </RevealItem>
               ))}
             </Reveal>
-            <Pagination page={page} totalPages={totalPages} basePath="/blog" query={{ category: categorySlug || undefined }} />
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              basePath="/blog"
+              query={{ category: categorySlug || undefined }}
+            />
           </>
         ) : (
           <EmptyState
