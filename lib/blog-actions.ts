@@ -3,18 +3,22 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult, BlogInput, PostStatus } from "@/lib/types";
+import type { ActionResult, Blog, BlogInput, PostStatus } from "@/lib/types";
 import { makeSlug, sanitizeHtml, stripHtml } from "@/lib/utils";
 
 type SupabaseServerClient = NonNullable<Awaited<ReturnType<typeof createClient>>>;
 
 const MAX_SLUG_SUFFIX = 50;
 
-function revalidateBlog(slug?: string): void {
+function revalidateBlog(slug?: string, categorySlug?: string): void {
   revalidatePath("/");
-  revalidatePath("/blogs");
+  revalidatePath("/blog");
   revalidatePath("/admin");
   revalidatePath("/admin/blogs");
+
+  if (categorySlug) {
+    revalidatePath(`/${categorySlug}`);
+  }
 
   if (slug) {
     revalidatePath(`/blog/${slug}`);
@@ -23,6 +27,29 @@ function revalidateBlog(slug?: string): void {
 
 function messageFrom(caught: unknown): string {
   return caught instanceof Error ? caught.message : "Unexpected error";
+}
+
+async function categorySlugFor(
+  supabase: SupabaseServerClient,
+  categoryId: string | null,
+): Promise<string | undefined> {
+  if (!categoryId) {
+    return undefined;
+  }
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("slug")
+    .eq("id", categoryId)
+    .maybeSingle();
+
+  if (error) {
+    console.error(`categorySlugFor: ${error.message}`);
+    return undefined;
+  }
+
+  const row = data as { slug: string } | null;
+  return row?.slug;
 }
 
 async function resolveUniqueSlug(
@@ -77,14 +104,15 @@ export async function saveBlog(input: BlogInput): Promise<ActionResult> {
     let publishedAt: string | null = input.status === "published" ? now : null;
 
     if (input.id) {
-      const { data: existing, error: existingError } = await supabase
+      const { data, error } = await supabase
         .from("blogs")
         .select("published_at")
         .eq("id", input.id)
         .maybeSingle();
+      const existing = data as { published_at: string | null } | null;
 
-      if (existingError) {
-        return { ok: false, error: existingError.message };
+      if (error) {
+        return { ok: false, error: error.message };
       }
 
       if (!existing) {
@@ -96,7 +124,7 @@ export async function saveBlog(input: BlogInput): Promise<ActionResult> {
       }
     }
 
-    const payload = {
+    const payload: Omit<Blog, "id" | "created_at"> = {
       title,
       subtitle: input.subtitle.trim() || null,
       slug,
@@ -113,6 +141,8 @@ export async function saveBlog(input: BlogInput): Promise<ActionResult> {
       updated_at: now,
     };
 
+    const categorySlug = await categorySlugFor(supabase, payload.category_id);
+
     if (input.id) {
       const { data, error } = await supabase
         .from("blogs")
@@ -120,13 +150,14 @@ export async function saveBlog(input: BlogInput): Promise<ActionResult> {
         .eq("id", input.id)
         .select("id, slug")
         .single();
+      const row = data as { id: string; slug: string } | null;
 
-      if (error || !data) {
+      if (error || !row) {
         return { ok: false, error: error?.message ?? "Blog could not be updated." };
       }
 
-      revalidateBlog(data.slug);
-      return { ok: true, id: data.id, slug: data.slug };
+      revalidateBlog(row.slug, categorySlug);
+      return { ok: true, id: row.id, slug: row.slug };
     }
 
     const { data, error } = await supabase
@@ -134,13 +165,14 @@ export async function saveBlog(input: BlogInput): Promise<ActionResult> {
       .insert(payload)
       .select("id, slug")
       .single();
+    const row = data as { id: string; slug: string } | null;
 
-    if (error || !data) {
+    if (error || !row) {
       return { ok: false, error: error?.message ?? "Blog could not be created." };
     }
 
-    revalidateBlog(data.slug);
-    return { ok: true, id: data.id, slug: data.slug };
+    revalidateBlog(row.slug, categorySlug);
+    return { ok: true, id: row.id, slug: row.slug };
   } catch (caught: unknown) {
     return { ok: false, error: messageFrom(caught) };
   }
@@ -154,21 +186,22 @@ export async function setBlogPublished(id: string, status: PostStatus): Promise<
     const now = new Date().toISOString();
     let publishedAt: string | null = status === "published" ? now : null;
 
+    const { data: current, error: currentError } = await supabase
+      .from("blogs")
+      .select("published_at, category_id")
+      .eq("id", id)
+      .maybeSingle();
+    const existing = current as { published_at: string | null; category_id: string | null } | null;
+
+    if (currentError) {
+      return { ok: false, error: currentError.message };
+    }
+
+    if (!existing) {
+      return { ok: false, error: "Blog could not be found." };
+    }
+
     if (status === "published") {
-      const { data: existing, error: existingError } = await supabase
-        .from("blogs")
-        .select("published_at")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (existingError) {
-        return { ok: false, error: existingError.message };
-      }
-
-      if (!existing) {
-        return { ok: false, error: "Blog could not be found." };
-      }
-
       publishedAt = existing.published_at ?? now;
     }
 
@@ -178,13 +211,14 @@ export async function setBlogPublished(id: string, status: PostStatus): Promise<
       .eq("id", id)
       .select("id, slug")
       .single();
+    const row = data as { id: string; slug: string } | null;
 
-    if (error || !data) {
+    if (error || !row) {
       return { ok: false, error: error?.message ?? "Status could not be updated." };
     }
 
-    revalidateBlog(data.slug);
-    return { ok: true, id: data.id, slug: data.slug };
+    revalidateBlog(row.slug, await categorySlugFor(supabase, existing.category_id));
+    return { ok: true, id: row.id, slug: row.slug };
   } catch (caught: unknown) {
     return { ok: false, error: messageFrom(caught) };
   }
@@ -196,12 +230,23 @@ export async function deleteBlog(id: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
+    const { data: current, error: currentError } = await supabase
+      .from("blogs")
+      .select("category_id")
+      .eq("id", id)
+      .maybeSingle();
+    const existing = current as { category_id: string | null } | null;
+
+    if (currentError) {
+      return { ok: false, error: currentError.message };
+    }
+
     const { error } = await supabase.from("blogs").delete().eq("id", id);
     if (error) {
       return { ok: false, error: error.message };
     }
 
-    revalidateBlog();
+    revalidateBlog(undefined, await categorySlugFor(supabase, existing?.category_id ?? null));
     return { ok: true };
   } catch (caught: unknown) {
     return { ok: false, error: messageFrom(caught) };

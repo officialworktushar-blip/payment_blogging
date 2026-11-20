@@ -3,12 +3,12 @@ import { ArrowRight, Coins, CreditCard, Landmark, ShieldCheck, Store, Wallet } f
 import type { LucideIcon } from "lucide-react";
 import { Reveal, RevealItem } from "@/components/animations/reveal";
 import { Container } from "@/components/container";
-import { countPostsByCategory } from "@/lib/queries";
-import type { CategoryRow, PostWithCategory } from "@/lib/types";
+import { countBlogsByCategory } from "@/lib/queries";
+import type { BlogWithCategory, CategoryRow } from "@/lib/types";
 
 interface CategorySectionProps {
   categories: CategoryRow[];
-  posts?: PostWithCategory[];
+  posts?: BlogWithCategory[];
   title?: string;
   description?: string;
 }
@@ -51,7 +51,7 @@ export function CategorySection({
           {categories.length > 0 ? (
             categories.map((category) => {
               const Icon = iconForCategory(category.slug);
-              const count = countPostsByCategory(posts, category.id);
+              const count = countBlogsByCategory(posts, category.id);
 
               return (
                 <RevealItem key={category.id} className="h-full">
@@ -84,8 +84,7 @@ export function CategorySection({
           ) : (
             <RevealItem className="sm:col-span-2 lg:col-span-3">
               <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-sm text-slate-600">
-                Categories will appear once you run the Supabase migration and sign in to the admin
-                area.
+                Categories will appear once the Supabase schema and seed SQL have been run.
               </p>
             </RevealItem>
           )}

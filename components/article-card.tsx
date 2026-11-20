@@ -3,11 +3,11 @@ import Link from "next/link";
 import { ArrowUpRight, Clock3 } from "lucide-react";
 import { CategoryPill } from "@/components/category-pill";
 import { ImagePlaceholder } from "@/components/image-placeholder";
-import type { PostWithCategory } from "@/lib/types";
-import { formatDate, readingMinutes } from "@/lib/utils";
+import type { BlogWithCategory } from "@/lib/types";
+import { formatDate, makeExcerpt, readingMinutes } from "@/lib/utils";
 
 interface ArticleCardProps {
-  post: PostWithCategory;
+  post: BlogWithCategory;
   featured?: boolean;
 }
 
@@ -19,16 +19,16 @@ export function ArticleCard({ post, featured = false }: ArticleCardProps) {
       }`}
     >
       <div className={`relative overflow-hidden ${featured ? "h-52 md:h-auto md:w-2/5" : "h-44"}`}>
-        {post.cover_image ? (
+        {post.cover_image_url ? (
           <Image
-            src={post.cover_image}
-            alt=""
+            src={post.cover_image_url}
+            alt={post.cover_image_alt ?? ""}
             fill
             sizes={featured ? "(max-width: 768px) 100vw, 40vw" : "(max-width: 768px) 100vw, 33vw"}
             className="object-cover"
           />
         ) : (
-          <ImagePlaceholder label="Cover image — 1200×630 payment explainer" />
+          <ImagePlaceholder label={post.cover_image_note ?? "Cover image — 1200×630 payment explainer"} />
         )}
       </div>
 
@@ -43,7 +43,7 @@ export function ArticleCard({ post, featured = false }: ArticleCardProps) {
         </div>
 
         <h3 className="mt-3 font-serif text-xl font-semibold leading-snug text-navy-900">
-          <Link href={`/posts/${post.slug}`} className="arrow-link inline-flex items-start gap-1 hover:text-brand-700">
+          <Link href={`/blog/${post.slug}`} className="arrow-link inline-flex items-start gap-1 hover:text-brand-700">
             {post.title}
             <ArrowUpRight
               aria-hidden="true"
@@ -53,9 +53,13 @@ export function ArticleCard({ post, featured = false }: ArticleCardProps) {
           </Link>
         </h3>
 
-        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{post.excerpt}</p>
+        <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
+          {post.description ?? makeExcerpt(post.content)}
+        </p>
 
-        <p className="mt-auto pt-4 text-xs font-medium text-slate-500">By {post.author}</p>
+        <p className="mt-auto pt-4 text-xs font-medium text-slate-500">
+          By {post.author_name ?? "PayLens Team"}
+        </p>
       </div>
     </article>
   );

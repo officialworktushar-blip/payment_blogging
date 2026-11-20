@@ -5,6 +5,7 @@ import { useState, type FormEvent } from "react";
 import { CheckCircle2, RotateCcw, Send } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { setSupportRequestStatus } from "@/lib/support-actions";
+import type { SupportRequestInput } from "@/lib/types";
 
 const fieldClass =
   "w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-800 outline-none transition-colors duration-200 motion-reduce:transition-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100";
@@ -26,12 +27,14 @@ export function SupportForm() {
 
     try {
       const supabase = createClient();
-      const { error } = await supabase.from("support_requests").insert({
+      const payload: SupportRequestInput = {
         name: name.trim(),
         email: email.trim(),
         topic: topic.trim(),
         message: message.trim(),
-      });
+        status: "open",
+      };
+      const { error } = await supabase.from("support_requests").insert(payload);
 
       if (error) {
         setFeedback({ tone: "error", text: error.message });

@@ -1,7 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { getSupabaseEnv } from "@/lib/supabase/env";
-import type { Database } from "@/lib/types";
 
 interface CookieToSet {
   name: string;
@@ -13,7 +12,7 @@ export async function createClient() {
   const { url, anonKey } = getSupabaseEnv();
   const cookieStore = await cookies();
 
-  return createServerClient<Database>(url, anonKey, {
+  return createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();

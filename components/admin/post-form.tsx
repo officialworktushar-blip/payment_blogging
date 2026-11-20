@@ -6,25 +6,31 @@ import { Save } from "lucide-react";
 import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { savePost } from "@/lib/actions";
-import type { CategoryRow, PostStatus, PostWithCategory } from "@/lib/types";
-import { makeSlug } from "@/lib/utils";
+import type { BlogWithCategory, CategoryRow, PostStatus } from "@/lib/types";
+import { makeSlug, stripHtml } from "@/lib/utils";
 
 interface PostFormProps {
   categories: CategoryRow[];
-  post: PostWithCategory | null;
+  post: BlogWithCategory | null;
 }
 
 export function PostForm({ categories, post }: PostFormProps) {
   const router = useRouter();
   const [title, setTitle] = useState(post?.title ?? "");
+  const [subtitle, setSubtitle] = useState(post?.subtitle ?? "");
   const [slug, setSlug] = useState(post?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
-  const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  const [description, setDescription] = useState(post?.description ?? "");
   const [content, setContent] = useState(post?.content ?? "");
-  const [coverImage, setCoverImage] = useState(post?.cover_image ?? "");
+  const [coverImageUrl, setCoverImageUrl] = useState(post?.cover_image_url ?? null);
+  const [coverImageAlt, setCoverImageAlt] = useState(post?.cover_image_alt ?? "");
+  const [coverImageNote, setCoverImageNote] = useState(post?.cover_image_note ?? "");
   const [categoryId, setCategoryId] = useState(post?.category_id ?? "");
-  const [author, setAuthor] = useState(post?.author ?? "PayLens Team");
-  const [status, setStatus] = useState<PostStatus>(post?.status === "published" ? "published" : "draft");
+  const [authorName, setAuthorName] = useState(post?.author_name ?? "PayLens Team");
+  const [status, setStatus] = useState<PostStatus>(
+    post?.status === "published" ? "published" : "draft",
+  );
+  const [isFeatured, setIsFeatured] = useState(post?.is_featured ?? false);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -41,16 +47,38 @@ export function PostForm({ categories, post }: PostFormProps) {
     setSaving(true);
     setError("");
 
+    if (!title.trim()) {
+      setError("A heading is required.");
+      setSaving(false);
+      return;
+    }
+
+    if (!description.trim()) {
+      setError("A short description is required.");
+      setSaving(false);
+      return;
+    }
+
+    if (!stripHtml(content).trim()) {
+      setError("Article content is required.");
+      setSaving(false);
+      return;
+    }
+
     const result = await savePost({
       id: post?.id,
       title,
+      subtitle,
       slug,
-      excerpt,
+      description,
       content,
-      coverImage: coverImage.trim() || null,
       categoryId: categoryId || null,
-      author,
+      coverImageUrl,
+      coverImageAlt,
+      coverImageNote,
+      authorName,
       status,
+      isFeatured,
     });
 
     if (!result.ok) {
@@ -72,7 +100,7 @@ export function PostForm({ categories, post }: PostFormProps) {
         <div className="space-y-5 lg:col-span-2">
           <div>
             <label htmlFor="post-title" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Title
+              Heading
             </label>
             <input
               id="post-title"
@@ -85,12 +113,36 @@ export function PostForm({ categories, post }: PostFormProps) {
           </div>
 
           <div>
-            <label htmlFor="post-content" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Article body
+            <label htmlFor="post-subtitle" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Sub Heading
             </label>
-            <div id="post-content">
-              <RichTextEditor value={content} onChange={setContent} />
-            </div>
+            <input
+              id="post-subtitle"
+              value={subtitle}
+              onChange={(event) => setSubtitle(event.target.value)}
+              className={fieldClass}
+              placeholder="A plain-language walkthrough"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="post-description" className="mb-1.5 block text-sm font-medium text-slate-700">
+              Short Description
+            </label>
+            <textarea
+              id="post-description"
+              required
+              rows={3}
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className={fieldClass}
+              placeholder="Used as the excerpt and SEO description."
+            />
+          </div>
+
+          <div>
+            <p className="mb-1.5 text-sm font-medium text-slate-700">Article body</p>
+            <RichTextEditor value={content} onChange={setContent} />
           </div>
         </div>
 
@@ -119,8 +171,8 @@ export function PostForm({ categories, post }: PostFormProps) {
                 </label>
                 <input
                   id="post-author"
-                  value={author}
-                  onChange={(event) => setAuthor(event.target.value)}
+                  value={authorName}
+                  onChange={(event) => setAuthorName(event.target.value)}
                   className={fieldClass}
                 />
               </div>
@@ -143,6 +195,16 @@ export function PostForm({ categories, post }: PostFormProps) {
                   ))}
                 </select>
               </div>
+
+              <label className="flex items-center gap-2 text-xs font-medium text-slate-600">
+                <input
+                  type="checkbox"
+                  checked={isFeatured}
+                  onChange={(event) => setIsFeatured(event.target.checked)}
+                  className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-300"
+                />
+                Featured blog
+              </label>
             </div>
           </div>
 
@@ -165,32 +227,15 @@ export function PostForm({ categories, post }: PostFormProps) {
                 />
               </div>
 
-              <div>
-                <label htmlFor="post-excerpt" className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Excerpt
-                </label>
-                <textarea
-                  id="post-excerpt"
-                  rows={4}
-                  value={excerpt}
-                  onChange={(event) => setExcerpt(event.target.value)}
-                  className={fieldClass}
-                  placeholder="A short, plain-language summary."
-                />
-              </div>
-
-              <div>
-                <p className="mb-1.5 text-xs font-medium text-slate-600">Cover image</p>
-                <CoverImageUpload
-                  value={coverImage || null}
-                  alt=""
-                  note=""
-                  onChange={(url) => setCoverImage(url ?? "")}
-                  onAltChange={() => undefined}
-                  onNoteChange={() => undefined}
-                  onUploadingChange={setUploading}
-                />
-              </div>
+              <CoverImageUpload
+                value={coverImageUrl}
+                alt={coverImageAlt}
+                note={coverImageNote}
+                onChange={setCoverImageUrl}
+                onAltChange={setCoverImageAlt}
+                onNoteChange={setCoverImageNote}
+                onUploadingChange={setUploading}
+              />
             </div>
           </div>
         </aside>

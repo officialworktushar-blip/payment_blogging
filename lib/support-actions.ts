@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "@/lib/types";
+import type { ActionResult, SupportRequest } from "@/lib/types";
 
 function messageFrom(caught: unknown): string {
   return caught instanceof Error ? caught.message : "Unexpected error";
@@ -11,7 +11,7 @@ function messageFrom(caught: unknown): string {
 
 export async function setSupportRequestStatus(
   id: string,
-  status: "open" | "resolved",
+  status: SupportRequest["status"],
 ): Promise<ActionResult> {
   await requireUser();
 

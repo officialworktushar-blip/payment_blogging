@@ -1,1 +1,1 @@
-export { ArticleCard as PostCard } from "@/components/article-card";
+export { BlogCard as PostCard } from "@/components/blog-card";

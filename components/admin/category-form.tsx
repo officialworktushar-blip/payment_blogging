@@ -38,6 +38,7 @@ export function CategoryForm({ category = null, onDone }: CategoryFormProps) {
       name,
       slug,
       description: description.trim() || null,
+      sort_order: category?.sort_order,
     });
 
     if (!result.ok) {

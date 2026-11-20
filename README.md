@@ -36,10 +36,9 @@ A payments education blog built with Next.js 16 (App Router), TypeScript, Tailwi
    - `supabase/schema.sql` — `categories`, `blogs`, `admin_users`, RLS and seeded categories.
    - `supabase/storage_policies.sql` — public `blog-images` bucket and admin-only image writes.
    - `supabase/schema_support.sql` — `support_requests` with anon insert and admin read/update.
-   - `supabase/migrations/0001_init.sql` — the older `posts` table used by `/admin/posts`.
    - `supabase/seed.sql` — 15 published example articles across five categories.
 
-   Run `0001_init.sql` after `schema.sql` so the seeded categories already exist. Blog and category routes are dynamic (`force-dynamic`) and do not use `generateStaticParams`.
+   Blog and category routes are dynamic (`force-dynamic`) and do not use `generateStaticParams`.
 
 4. Disable public sign-ups in Supabase: **Authentication → Providers → Email**, untick **Allow new users to sign up**.
 
@@ -72,7 +71,7 @@ Never put a Supabase service-role key in this app or in any `NEXT_PUBLIC_*` vari
    on conflict (email) do nothing;
    ```
 
-3. Sign in at `/admin/login`. There is no public sign-up. `middleware.ts` and `lib/auth.ts` both check `admin_users`; unauthenticated or unauthorised sessions are redirected and signed out.
+3. Sign in at `/admin/login`. There is no public sign-up. `proxy.ts` and `lib/auth.ts` both check `admin_users`; unauthenticated or unauthorised sessions are redirected and signed out.
 
 ## 4. Adding a blog
 
@@ -88,7 +87,7 @@ Never put a Supabase service-role key in this app or in any `NEXT_PUBLIC_*` vari
 7. To publish, unpublish, edit or delete later, use the actions on `/admin/blogs`.
 8. Use only fictional identifiers in content, for example `4111 xxxx xxxx 1111` and `user@example`.
 
-The older `/admin/posts` area edits the legacy `posts` table from `supabase/migrations/0001_init.sql`. New content should use `/admin/blogs`.
+The `/admin/posts` area is a compatibility view of the same `blogs` table; new content should use `/admin/blogs`.
 
 ## 5. Deploying to Vercel
 

@@ -1,21 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { deleteBlog, saveBlog } from "@/lib/blog-actions";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult, CategoryInput, PostInput } from "@/lib/types";
-import { makeExcerpt, makeSlug, sanitizeHtml } from "@/lib/utils";
+import type { ActionResult, BlogInput, Category, CategoryInput } from "@/lib/types";
+import { makeSlug } from "@/lib/utils";
 
-function revalidateContent(slug?: string): void {
+function revalidateContent(categorySlug?: string, blogSlug?: string): void {
   revalidatePath("/");
-  revalidatePath("/posts");
-  revalidatePath("/categories");
+  revalidatePath("/blog");
   revalidatePath("/admin");
-  revalidatePath("/admin/posts");
+  revalidatePath("/admin/blogs");
   revalidatePath("/admin/categories");
 
-  if (slug) {
-    revalidatePath(`/posts/${slug}`);
+  if (categorySlug) {
+    revalidatePath(`/${categorySlug}`);
+  }
+
+  if (blogSlug) {
+    revalidatePath(`/blog/${blogSlug}`);
   }
 }
 
@@ -23,109 +27,14 @@ function messageFrom(caught: unknown): string {
   return caught instanceof Error ? caught.message : "Unexpected error";
 }
 
-export async function savePost(input: PostInput): Promise<ActionResult> {
+export async function savePost(input: BlogInput): Promise<ActionResult> {
   await requireUser();
-
-  try {
-    const supabase = await createClient();
-
-    if (!supabase) {
-      return { ok: false, error: "Supabase is not configured." };
-    }
-
-    const title = input.title.trim();
-    if (!title) {
-      return { ok: false, error: "A title is required." };
-    }
-
-    const slug = makeSlug(input.slug.trim() || title);
-    const content = sanitizeHtml(input.content);
-    const excerpt = input.excerpt.trim() || makeExcerpt(content);
-    const now = new Date().toISOString();
-    let publishedAt: string | null = input.status === "published" ? now : null;
-
-    if (input.id) {
-      const { data: existing, error: existingError } = await supabase
-        .from("posts")
-        .select("published_at")
-        .eq("id", input.id)
-        .maybeSingle();
-
-      if (existingError) {
-        return { ok: false, error: existingError.message };
-      }
-
-      if (input.status === "published") {
-        publishedAt = existing?.published_at ?? now;
-      }
-    }
-
-    const payload = {
-      title,
-      slug,
-      excerpt,
-      content,
-      cover_image: input.coverImage,
-      category_id: input.categoryId,
-      author: input.author.trim() || "PayLens Team",
-      status: input.status,
-      published_at: publishedAt,
-      updated_at: now,
-    };
-
-    if (input.id) {
-      const { data, error } = await supabase
-        .from("posts")
-        .update(payload)
-        .eq("id", input.id)
-        .select("id, slug")
-        .single();
-
-      if (error || !data) {
-        return { ok: false, error: error?.message ?? "Post could not be updated." };
-      }
-
-      revalidateContent(data.slug);
-      return { ok: true, id: data.id };
-    }
-
-    const { data, error } = await supabase
-      .from("posts")
-      .insert(payload)
-      .select("id, slug")
-      .single();
-
-    if (error || !data) {
-      return { ok: false, error: error?.message ?? "Post could not be created." };
-    }
-
-    revalidateContent(data.slug);
-    return { ok: true, id: data.id };
-  } catch (caught: unknown) {
-    return { ok: false, error: messageFrom(caught) };
-  }
+  return saveBlog(input);
 }
 
 export async function deletePost(id: string): Promise<ActionResult> {
   await requireUser();
-
-  try {
-    const supabase = await createClient();
-
-    if (!supabase) {
-      return { ok: false, error: "Supabase is not configured." };
-    }
-
-    const { error } = await supabase.from("posts").delete().eq("id", id);
-    if (error) {
-      return { ok: false, error: error.message };
-    }
-
-    revalidateContent();
-    return { ok: true };
-  } catch (caught: unknown) {
-    return { ok: false, error: messageFrom(caught) };
-  }
+  return deleteBlog(id);
 }
 
 export async function saveCategory(input: CategoryInput): Promise<ActionResult> {
@@ -133,20 +42,17 @@ export async function saveCategory(input: CategoryInput): Promise<ActionResult> 
 
   try {
     const supabase = await createClient();
-
-    if (!supabase) {
-      return { ok: false, error: "Supabase is not configured." };
-    }
-
     const name = input.name.trim();
+
     if (!name) {
       return { ok: false, error: "A category name is required." };
     }
 
-    const payload = {
+    const payload: Omit<Category, "id"> = {
       name,
       slug: makeSlug(input.slug.trim() || name),
       description: input.description?.trim() || null,
+      sort_order: input.sort_order ?? 0,
     };
 
     if (input.id) {
@@ -154,29 +60,31 @@ export async function saveCategory(input: CategoryInput): Promise<ActionResult> 
         .from("categories")
         .update(payload)
         .eq("id", input.id)
-        .select("id")
+        .select("id, slug")
         .single();
+      const row = data as { id: string; slug: string } | null;
 
-      if (error || !data) {
+      if (error || !row) {
         return { ok: false, error: error?.message ?? "Category could not be updated." };
       }
 
-      revalidateContent();
-      return { ok: true, id: data.id };
+      revalidateContent(row.slug);
+      return { ok: true, id: row.id };
     }
 
     const { data, error } = await supabase
       .from("categories")
       .insert(payload)
-      .select("id")
+      .select("id, slug")
       .single();
+    const row = data as { id: string; slug: string } | null;
 
-    if (error || !data) {
+    if (error || !row) {
       return { ok: false, error: error?.message ?? "Category could not be created." };
     }
 
-    revalidateContent();
-    return { ok: true, id: data.id };
+    revalidateContent(row.slug);
+    return { ok: true, id: row.id };
   } catch (caught: unknown) {
     return { ok: false, error: messageFrom(caught) };
   }
@@ -188,8 +96,15 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
   try {
     const supabase = await createClient();
 
-    if (!supabase) {
-      return { ok: false, error: "Supabase is not configured." };
+    const { data: existing, error: existingError } = await supabase
+      .from("categories")
+      .select("slug")
+      .eq("id", id)
+      .maybeSingle();
+    const existingRow = existing as { slug: string } | null;
+
+    if (existingError) {
+      return { ok: false, error: existingError.message };
     }
 
     const { error } = await supabase.from("categories").delete().eq("id", id);
@@ -197,7 +112,7 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
       return { ok: false, error: error.message };
     }
 
-    revalidateContent();
+    revalidateContent(existingRow?.slug);
     return { ok: true };
   } catch (caught: unknown) {
     return { ok: false, error: messageFrom(caught) };

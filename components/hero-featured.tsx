@@ -5,13 +5,13 @@ import { FloatingCoins } from "@/components/animations/floating-coins";
 import { PaymentFlowHero } from "@/components/animations/payment-flow-hero";
 import { Reveal } from "@/components/animations/reveal";
 import { Container } from "@/components/container";
-import type { PostWithCategory } from "@/lib/types";
+import type { BlogWithCategory } from "@/lib/types";
 
 interface HeroFeaturedProps {
   eyebrow?: string;
   title: string;
   description: string;
-  featuredPost?: PostWithCategory | null;
+  featuredPost?: BlogWithCategory | null;
   actions?: ReactNode;
 }
 
@@ -45,7 +45,7 @@ export function HeroFeatured({
 
           {featuredPost ? (
             <Link
-              href={`/posts/${featuredPost.slug}`}
+              href={`/blog/${featuredPost.slug}`}
               className="arrow-link mt-10 block max-w-xl rounded-xl border border-white/10 bg-white/5 p-4 hover:border-brand-300/40"
             >
               <span className="text-[11px] font-semibold uppercase tracking-widest text-brand-300">

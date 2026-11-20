@@ -1,11 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type {
-  BlogWithCategory,
-  CategoryRow,
-  CategorySummary,
-  PostWithCategory,
-  SupportRequest,
-} from "@/lib/types";
+import type { BlogWithCategory, CategoryRow, CategorySummary, SupportRequest } from "@/lib/types";
 
 function logQueryError(context: string, message: string): void {
   console.error(`${context}: ${message}`);
@@ -21,14 +15,14 @@ async function getSupabaseClient() {
 }
 
 export function filterPosts(
-  posts: PostWithCategory[],
+  blogs: BlogWithCategory[],
   options: { query?: string; categorySlug?: string } = {},
-): PostWithCategory[] {
+): BlogWithCategory[] {
   const normalizedQuery = options.query?.trim().toLowerCase() ?? "";
   const categorySlug = options.categorySlug;
 
-  return posts.filter((post) => {
-    if (categorySlug && post.categories?.slug !== categorySlug) {
+  return blogs.filter((blog) => {
+    if (categorySlug && blog.categories?.slug !== categorySlug) {
       return false;
     }
 
@@ -36,55 +30,22 @@ export function filterPosts(
       return true;
     }
 
-    const haystack = `${post.title} ${post.excerpt} ${post.categories?.name ?? ""}`.toLowerCase();
+    const haystack =
+      `${blog.title} ${blog.subtitle ?? ""} ${blog.description ?? ""} ${blog.categories?.name ?? ""}`.toLowerCase();
     return haystack.includes(normalizedQuery);
   });
 }
 
-export async function getPublishedPosts(): Promise<PostWithCategory[]> {
-  const supabase = await getSupabaseClient();
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*, categories(id, name, slug)")
-    .eq("status", "published")
-    .order("published_at", { ascending: false });
-
-  if (error) {
-    logQueryError("getPublishedPosts", error.message);
-    return [];
-  }
-
-  return (data ?? []) as unknown as PostWithCategory[];
+export async function getPublishedPosts(): Promise<BlogWithCategory[]> {
+  return getPublishedBlogs();
 }
 
-export async function getFeaturedPosts(limit = 3): Promise<PostWithCategory[]> {
-  const posts = await getPublishedPosts();
-  return posts.slice(0, limit);
+export async function getFeaturedPosts(limit = 3): Promise<BlogWithCategory[]> {
+  return getFeaturedBlogs(limit);
 }
 
-export async function getPostBySlug(slug: string): Promise<PostWithCategory | null> {
-  const supabase = await getSupabaseClient();
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*, categories(id, name, slug)")
-    .eq("status", "published")
-    .eq("slug", slug)
-    .maybeSingle();
-
-  if (error) {
-    logQueryError("getPostBySlug", error.message);
-    return null;
-  }
-
-  return (data ?? null) as unknown as PostWithCategory | null;
+export async function getPostBySlug(slug: string): Promise<BlogWithCategory | null> {
+  return getPublicBlogBySlug(slug);
 }
 
 export async function getCategories(): Promise<CategoryRow[]> {
@@ -126,43 +87,12 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
   return (data ?? null) as CategoryRow | null;
 }
 
-export async function getAdminPosts(): Promise<PostWithCategory[]> {
-  const supabase = await getSupabaseClient();
-  if (!supabase) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*, categories(id, name, slug)")
-    .order("updated_at", { ascending: false });
-
-  if (error) {
-    logQueryError("getAdminPosts", error.message);
-    return [];
-  }
-
-  return (data ?? []) as unknown as PostWithCategory[];
+export async function getAdminPosts(): Promise<BlogWithCategory[]> {
+  return getAdminBlogs();
 }
 
-export async function getAdminPostById(id: string): Promise<PostWithCategory | null> {
-  const supabase = await getSupabaseClient();
-  if (!supabase) {
-    return null;
-  }
-
-  const { data, error } = await supabase
-    .from("posts")
-    .select("*, categories(id, name, slug)")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (error) {
-    logQueryError("getAdminPostById", error.message);
-    return null;
-  }
-
-  return (data ?? null) as unknown as PostWithCategory | null;
+export async function getAdminPostById(id: string): Promise<BlogWithCategory | null> {
+  return getAdminBlogById(id);
 }
 
 export async function getAdminCategories(): Promise<CategoryRow[]> {
@@ -170,10 +100,10 @@ export async function getAdminCategories(): Promise<CategoryRow[]> {
 }
 
 export function countPostsByCategory(
-  posts: PostWithCategory[],
+  blogs: BlogWithCategory[],
   categoryId: string,
 ): number {
-  return posts.filter((post) => post.category_id === categoryId).length;
+  return countBlogsByCategory(blogs, categoryId);
 }
 
 export async function getAdminBlogs(): Promise<BlogWithCategory[]> {
@@ -243,6 +173,7 @@ export async function getBlogBySlug(slug: string): Promise<BlogWithCategory | nu
   const { data, error } = await supabase
     .from("blogs")
     .select("*, categories(id, name, slug)")
+    .eq("status", "published")
     .eq("slug", slug)
     .maybeSingle();
 

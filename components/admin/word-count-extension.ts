@@ -6,7 +6,7 @@ export interface WordCountStorage {
   characters: number;
 }
 
-export type WordCountOptions = Record<string, never>;
+export type WordCountOptions = Record<string, unknown>;
 
 function refreshStorage(storage: WordCountStorage, text: string): void {
   const trimmed = text.trim();
