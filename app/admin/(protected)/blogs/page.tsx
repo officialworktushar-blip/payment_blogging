@@ -15,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 interface AdminBlogsPageProps {
-  searchParams: Promise<{ q?: string; status?: string; category?: string }>;
+  searchParams: Promise<{ q?: string | string[]; status?: string | string[]; category?: string | string[] }>;
 }
 
 const fieldClass =
@@ -23,9 +23,12 @@ const fieldClass =
 
 export default async function AdminBlogsPage({ searchParams }: AdminBlogsPageProps) {
   const params = await searchParams;
-  const query = typeof params.q === "string" ? params.q.trim().toLowerCase() : "";
-  const status = params.status === "published" || params.status === "draft" ? params.status : "";
-  const category = typeof params.category === "string" ? params.category : "";
+  const qParam = Array.isArray(params.q) ? params.q[0] : params.q;
+  const statusParam = Array.isArray(params.status) ? params.status[0] : params.status;
+  const categoryParam = Array.isArray(params.category) ? params.category[0] : params.category;
+  const query = typeof qParam === "string" ? qParam.trim().toLowerCase() : "";
+  const status = statusParam === "published" || statusParam === "draft" ? statusParam : "";
+  const category = typeof categoryParam === "string" ? categoryParam : "";
 
   const [blogs, categories] = await Promise.all([getAdminBlogs(), getBlogCategories()]);
   const visibleBlogs = blogs.filter((blog) => {

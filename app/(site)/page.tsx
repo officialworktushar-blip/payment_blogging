@@ -1,43 +1,56 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { CountUp } from "@/components/animations/count-up";
 import { FlipCard } from "@/components/animations/flip-card";
 import { PaymentMethodsStrip } from "@/components/animations/payment-methods-strip";
 import { QRScan } from "@/components/animations/qr-scan";
-import { SecurityShield } from "@/components/animations/security-shield";
 import { Reveal, RevealItem } from "@/components/animations/reveal";
-import { ArticleCard } from "@/components/article-card";
-import { CategorySection } from "@/components/category-section";
+import { SecurityShield } from "@/components/animations/security-shield";
+import { BlogCard } from "@/components/blog-card";
+import { BlogCategorySection } from "@/components/blog-category-section";
+import { BlogHeroFeatured } from "@/components/blog-hero-featured";
 import { Container } from "@/components/container";
 import { EmptyState } from "@/components/empty-state";
-import { HeroFeatured } from "@/components/hero-featured";
+import { NewsletterCta } from "@/components/newsletter-cta";
 import { SearchForm } from "@/components/search-form";
-import { getCategories, getPublishedPosts } from "@/lib/queries";
+import { getCategories, getFeaturedBlogs, getPublishedBlogs } from "@/lib/queries";
 import { siteConfig } from "@/lib/site-config";
 
 export const dynamic = "force-dynamic";
 
+export const metadata: Metadata = {
+  title: `${siteConfig.name} — ${siteConfig.tagline}`,
+  description: siteConfig.description,
+  alternates: { canonical: "/" },
+};
+
 export default async function HomePage() {
-  const [posts, categories] = await Promise.all([getPublishedPosts(), getCategories()]);
-  const featured = posts.slice(0, 3);
+  const [blogs, featured, categories] = await Promise.all([
+    getPublishedBlogs(),
+    getFeaturedBlogs(3),
+    getCategories(),
+  ]);
+  const heroBlog = featured[0] ?? null;
+  const latest = blogs.filter((blog) => blog.id !== heroBlog?.id).slice(0, 6);
 
   return (
     <>
-      <HeroFeatured
+      <BlogHeroFeatured
         title="Understand every payment before you tap, swipe or send."
         description={`${siteConfig.name} breaks down cards, UPI, net banking, gateways and refunds into clear, practical guides. No jargon, no real account details, just the concepts you need.`}
-        featuredPost={featured[0] ?? null}
+        featuredBlog={heroBlog}
         actions={
           <>
             <Link
-              href="/posts"
+              href="/blog"
               className="arrow-link inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-500"
             >
               Browse articles
               <ArrowRight aria-hidden="true" size={16} className="arrow-icon" />
             </Link>
             <Link
-              href="/categories"
+              href="/blog"
               className="inline-flex rounded-lg border border-white/20 bg-white/5 px-5 py-2.5 text-sm font-semibold text-white hover:bg-white/10"
             >
               Explore topics
@@ -63,7 +76,7 @@ export default async function HomePage() {
           </Reveal>
           <Reveal className="text-center" delay={0.1}>
             <p className="font-serif text-3xl font-semibold text-navy-900">
-              <CountUp value={Math.max(posts.length, 1)} suffix="+" />
+              <CountUp value={Math.max(blogs.length, 1)} suffix="+" />
             </p>
             <p className="mt-1 text-xs font-medium uppercase tracking-widest text-slate-500">
               Plain-language guides
@@ -84,13 +97,13 @@ export default async function HomePage() {
         <Container>
           <Reveal className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-widest text-brand-700">Latest</p>
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-700">Featured</p>
               <h2 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-navy-900">
-                Featured explanations
+                Start with this guide
               </h2>
             </div>
             <Link
-              href="/posts"
+              href="/blog"
               className="arrow-link inline-flex items-center gap-1 text-sm font-semibold text-brand-700"
             >
               See all articles
@@ -99,23 +112,45 @@ export default async function HomePage() {
           </Reveal>
 
           <div className="mt-8">
-            {featured.length > 0 ? (
-              <Reveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {featured.map((post) => (
-                  <RevealItem key={post.id} className="h-full">
-                    <ArticleCard post={post} />
-                  </RevealItem>
-                ))}
+            {heroBlog ? (
+              <Reveal>
+                <RevealItem>
+                  <BlogCard blog={heroBlog} featured />
+                </RevealItem>
               </Reveal>
             ) : (
               <EmptyState
                 title="No published articles yet"
-                description="Sign in to /admin, publish a draft, and it will appear here. If Supabase is not configured yet, follow the README setup steps."
+                description="Run the seed SQL, or sign in to /admin and publish a draft. It will appear here automatically."
                 href="/admin/login"
                 label="Go to admin"
               />
             )}
           </div>
+        </Container>
+      </section>
+
+      <section className="bg-white py-14 sm:py-20">
+        <Container>
+          <Reveal>
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-700">Latest</p>
+            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-tight text-navy-900">
+              Latest Articles
+            </h2>
+          </Reveal>
+          {latest.length > 0 ? (
+            <Reveal className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {latest.map((blog) => (
+                <RevealItem key={blog.id} className="h-full">
+                  <BlogCard blog={blog} />
+                </RevealItem>
+              ))}
+            </Reveal>
+          ) : (
+            <p className="mt-6 rounded-2xl border border-dashed border-slate-300 p-6 text-sm text-slate-600">
+              More guides will appear here as they are published.
+            </p>
+          )}
         </Container>
       </section>
 
@@ -143,12 +178,54 @@ export default async function HomePage() {
         </Container>
       </section>
 
-      <CategorySection
+      <section className="bg-navy-950 py-14 text-white sm:py-20">
+        <Container className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+          <Reveal>
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-300">
+              Stay safe online
+            </p>
+            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-tight">
+              Never share your OTP, PIN or CVV
+            </h2>
+            <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-300">
+              Keep payment checks on official screens, pause before urgent messages, and verify any
+              unusual request with your bank or provider through a channel you already trust.
+            </p>
+            <Link
+              href="/payment-security"
+              className="arrow-link mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-200"
+            >
+              Read the safety guides
+              <ArrowRight aria-hidden="true" size={15} className="arrow-icon" />
+            </Link>
+          </Reveal>
+          <Reveal delay={0.1} className="mx-auto w-full max-w-xs">
+            <SecurityShield />
+          </Reveal>
+        </Container>
+      </section>
+
+      <BlogCategorySection
         categories={categories}
-        posts={posts}
+        blogs={blogs}
         title="Start with a category"
         description="From the first tap to the final settlement, find the guide that matches your question."
       />
+
+      <section className="pb-16">
+        <Container>
+          <Reveal className="rounded-2xl bg-gradient-to-br from-brand-700 to-navy-900 px-6 py-10 text-white sm:px-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-200">Newsletter</p>
+            <h2 className="mt-2 font-serif text-3xl font-semibold tracking-tight">
+              Get one clear payment guide each week
+            </h2>
+            <p className="mt-2 max-w-xl text-sm leading-7 text-slate-200">
+              UI only for now. Add your email provider when you are ready to send updates.
+            </p>
+            <NewsletterCta />
+          </Reveal>
+        </Container>
+      </section>
     </>
   );
 }

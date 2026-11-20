@@ -16,7 +16,7 @@ export function CategoryPill({ category }: CategoryPillProps) {
 
   return (
     <Link
-      href={`/categories/${category.slug}`}
+      href={`/${category.slug}`}
       className="inline-flex rounded-full bg-brand-50 px-2.5 py-1 text-xs font-medium text-brand-700 hover:bg-brand-100"
     >
       {category.name}

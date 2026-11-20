@@ -17,11 +17,11 @@ function iconForCategory(slug: string): LucideIcon {
   switch (slug) {
     case "cards":
       return CreditCard;
-    case "upi-and-wallets":
+    case "upi-wallets":
       return Wallet;
-    case "gateways":
+    case "payment-gateways":
       return Store;
-    case "security":
+    case "payment-security":
       return ShieldCheck;
     case "net-banking":
       return Landmark;
@@ -56,7 +56,7 @@ export function CategorySection({
               return (
                 <RevealItem key={category.id} className="h-full">
                   <Link
-                    href={`/categories/${category.slug}`}
+                    href={`/${category.slug}`}
                     className="category-tile hover-lift group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6"
                   >
                     <span className="category-tile-icon flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-700">

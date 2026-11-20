@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 interface AdminLoginPageProps {
-  searchParams: Promise<{ notice?: string; error?: string }>;
+  searchParams: Promise<{ notice?: string | string[]; error?: string | string[] }>;
 }
 
 const errorMessages: Record<string, string> = {
@@ -23,9 +23,11 @@ const errorMessages: Record<string, string> = {
 
 export default async function AdminLoginPage({ searchParams }: AdminLoginPageProps) {
   const params = await searchParams;
-  const needsSetup = params.notice === "setup";
+  const noticeParam = Array.isArray(params.notice) ? params.notice[0] : params.notice;
+  const errorParam = Array.isArray(params.error) ? params.error[0] : params.error;
+  const needsSetup = noticeParam === "setup";
   const initialError =
-    typeof params.error === "string" ? (errorMessages[params.error] ?? "Sign-in failed.") : "";
+    typeof errorParam === "string" ? (errorMessages[errorParam] ?? "Sign-in failed.") : "";
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4 py-12">

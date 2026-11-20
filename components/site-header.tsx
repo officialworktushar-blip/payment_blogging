@@ -42,7 +42,7 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-1">
           <Link
-            href="/posts"
+            href="/search"
             aria-label="Search articles"
             className="rounded-md p-2 text-slate-600 hover:bg-slate-100 hover:text-brand-700"
           >

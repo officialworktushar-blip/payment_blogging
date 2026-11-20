@@ -91,6 +91,17 @@ export interface BlogInput {
   isFeatured: boolean;
 }
 
+export interface SupportRequest {
+  id: string;
+  name: string;
+  email: string;
+  topic: string;
+  message: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface ActionResult {
   ok: boolean;
   error?: string;
@@ -246,6 +257,39 @@ export interface Database {
         };
         Update: {
           email?: string;
+        };
+        Relationships: [];
+      };
+      support_requests: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          topic: string;
+          message: string;
+          status: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          topic: string;
+          message: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string;
+          topic?: string;
+          message?: string;
+          status?: string;
+          created_at?: string;
+          updated_at?: string;
         };
         Relationships: [];
       };

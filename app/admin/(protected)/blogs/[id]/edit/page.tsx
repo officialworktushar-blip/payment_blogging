@@ -14,12 +14,13 @@ export const metadata: Metadata = {
 
 interface EditBlogPageProps {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string | string[] }>;
 }
 
 export default async function EditBlogPage({ params, searchParams }: EditBlogPageProps) {
   const { id } = await params;
   const { saved } = await searchParams;
+  const savedParam = Array.isArray(saved) ? saved[0] : saved;
   const [blog, categories] = await Promise.all([getAdminBlogById(id), getBlogCategories()]);
 
   if (!blog) {
@@ -38,7 +39,7 @@ export default async function EditBlogPage({ params, searchParams }: EditBlogPag
       <h1 className="mt-4 font-serif text-2xl font-semibold tracking-tight text-navy-900">Edit Blog</h1>
       <p className="mb-8 mt-2 text-sm text-slate-600">{blog.title}</p>
 
-      <BlogForm categories={categories} blog={blog} justSaved={saved === "1"} />
+      <BlogForm categories={categories} blog={blog} justSaved={savedParam === "1"} />
     </div>
   );
 }

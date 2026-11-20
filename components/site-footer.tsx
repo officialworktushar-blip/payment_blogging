@@ -6,7 +6,7 @@ import { siteConfig } from "@/lib/site-config";
 export function SiteFooter() {
   return (
     <footer className="mt-20 bg-navy-950 text-slate-300">
-      <Container className="grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-5">
+      <Container className="grid gap-10 py-14 md:grid-cols-2 lg:grid-cols-6">
         <div className="lg:col-span-2">
           <Link href="/" className="inline-flex items-center gap-2 text-white">
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-600 text-white">
@@ -58,8 +58,7 @@ export function SiteFooter() {
 
       <Container className="border-t border-white/10 py-6">
         <p className="text-xs leading-5 text-slate-400">
-          Content is for education only, not financial or legal advice. Never share your OTP, PIN or
-          CVV with anyone.
+          Content is for education only, not financial or legal advice. Never share your OTP, PIN or CVV with anyone.
         </p>
       </Container>
     </footer>

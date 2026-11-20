@@ -7,9 +7,10 @@ import { Search } from "lucide-react";
 interface SearchFormProps {
   initialQuery?: string;
   categorySlug?: string;
+  action?: string;
 }
 
-export function SearchForm({ initialQuery = "", categorySlug }: SearchFormProps) {
+export function SearchForm({ initialQuery = "", categorySlug, action = "/search" }: SearchFormProps) {
   const router = useRouter();
   const [query, setQuery] = useState(initialQuery);
 
@@ -27,7 +28,7 @@ export function SearchForm({ initialQuery = "", categorySlug }: SearchFormProps)
     }
 
     const queryString = params.toString();
-    router.push(queryString ? `/posts?${queryString}` : "/posts");
+    router.push(queryString ? `${action}?${queryString}` : action);
   }
 
   return (

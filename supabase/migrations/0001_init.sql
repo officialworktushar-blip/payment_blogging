@@ -93,9 +93,9 @@ create policy "post_images_authenticated_write"
 insert into public.categories (name, slug, description)
 values
   ('Cards', 'cards', 'How card networks, issuers and acquirers work together.'),
-  ('UPI and Wallets', 'upi-and-wallets', 'Instant transfers, handles and digital wallet basics.'),
-  ('Gateways', 'gateways', 'The plumbing behind online checkout and settlement.'),
-  ('Security', 'security', 'Habits and red flags that help keep your money safe.'),
+  ('UPI & Wallets', 'upi-wallets', 'Instant transfers, handles and digital wallet basics.'),
+  ('Payment Gateways', 'payment-gateways', 'The plumbing behind online checkout and settlement.'),
+  ('Payment Security', 'payment-security', 'Habits and red flags that help keep your money safe.'),
   ('Net Banking', 'net-banking', 'Online banking, transfers and account-to-account payments.')
 on conflict (slug) do nothing;
 
@@ -121,7 +121,7 @@ select
   'upi-basics',
   'Understand what a UPI handle means and how to spot a suspicious payment request.',
   '<h2>What a handle really is</h2><p>A UPI handle maps a friendly address to a bank account. Treat it like an email address: useful for receiving money, but not proof that a message is genuine.</p><h2>Collect or pay</h2><p>A collect request asks you to approve a debit. Read the payee name and amount before you approve anything. A request that appears from user@example in a demo is fictional; real requests deserve real scrutiny.</p><ul><li>Never approve a request you did not expect.</li><li>Do not read out OTPs or approve prompts during an unsolicited call.</li><li>Check the amount, not just the name.</li></ul>',
-  (select id from public.categories where slug = 'upi-and-wallets'),
+  (select id from public.categories where slug = 'upi-wallets'),
   'PayLens Team',
   'published',
   now() - interval '5 days'
@@ -136,7 +136,7 @@ select
   'gateway-or-processor',
   'A simple mental model for the services between your checkout button and your bank account.',
   '<h2>Two jobs, often one vendor</h2><p>A payment gateway collects and secures customer details at checkout. A processor routes the transaction, handles authorisation and helps move funds. Many companies bundle both jobs into one product.</p><h2>Why it matters</h2><p>When a checkout fails, knowing which layer is involved makes support conversations faster. Ask whether the issue is at the form, the authorisation step or the payout stage.</p><p>All examples on PayLens use fictional data, including demo handles like user@example.</p>',
-  (select id from public.categories where slug = 'gateways'),
+  (select id from public.categories where slug = 'payment-gateways'),
   'PayLens Team',
   'published',
   now() - interval '2 days'
@@ -151,7 +151,7 @@ select
   'payment-scams-to-recognise',
   'Common pressure tactics and the simple checks that slow a scam down.',
   '<h2>Urgency is a warning sign</h2><p>Scammers push you to act now, keep secrets and move to another channel. A genuine payment provider will not ask you to share an OTP, CVV or password.</p><h2>Slow down and verify</h2><ul><li>Open the app yourself instead of tapping a link in a message.</li><li>Call the organisation using a number from its official site.</li><li>Check the payee and amount before approving any request.</li><li>Use fictional test data such as 4111 xxxx xxxx 1111 in demos and training.</li></ul><p>If something feels wrong, stop and ask someone you trust before authorising a payment.</p>',
-  (select id from public.categories where slug = 'security'),
+  (select id from public.categories where slug = 'payment-security'),
   'PayLens Team',
   'published',
   now() - interval '1 day'

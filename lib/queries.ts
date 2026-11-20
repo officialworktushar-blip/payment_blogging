@@ -1,8 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
-import type { BlogWithCategory, CategoryRow, CategorySummary, PostWithCategory } from "@/lib/types";
+import type {
+  BlogWithCategory,
+  CategoryRow,
+  CategorySummary,
+  PostWithCategory,
+  SupportRequest,
+} from "@/lib/types";
 
 function logQueryError(context: string, message: string): void {
   console.error(`${context}: ${message}`);
+}
+
+async function getSupabaseClient() {
+  try {
+    return await createClient();
+  } catch (caught: unknown) {
+    logQueryError("getSupabaseClient", caught instanceof Error ? caught.message : "Unknown error");
+    return null;
+  }
 }
 
 export function filterPosts(
@@ -27,7 +42,7 @@ export function filterPosts(
 }
 
 export async function getPublishedPosts(): Promise<PostWithCategory[]> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return [];
   }
@@ -52,7 +67,7 @@ export async function getFeaturedPosts(limit = 3): Promise<PostWithCategory[]> {
 }
 
 export async function getPostBySlug(slug: string): Promise<PostWithCategory | null> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return null;
   }
@@ -73,7 +88,7 @@ export async function getPostBySlug(slug: string): Promise<PostWithCategory | nu
 }
 
 export async function getCategories(): Promise<CategoryRow[]> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return [];
   }
@@ -92,7 +107,7 @@ export async function getCategories(): Promise<CategoryRow[]> {
 }
 
 export async function getCategoryBySlug(slug: string): Promise<CategoryRow | null> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return null;
   }
@@ -112,7 +127,7 @@ export async function getCategoryBySlug(slug: string): Promise<CategoryRow | nul
 }
 
 export async function getAdminPosts(): Promise<PostWithCategory[]> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return [];
   }
@@ -131,7 +146,7 @@ export async function getAdminPosts(): Promise<PostWithCategory[]> {
 }
 
 export async function getAdminPostById(id: string): Promise<PostWithCategory | null> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
   if (!supabase) {
     return null;
   }
@@ -162,7 +177,10 @@ export function countPostsByCategory(
 }
 
 export async function getAdminBlogs(): Promise<BlogWithCategory[]> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("blogs")
@@ -178,7 +196,10 @@ export async function getAdminBlogs(): Promise<BlogWithCategory[]> {
 }
 
 export async function getAdminBlogById(id: string): Promise<BlogWithCategory | null> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
 
   const { data, error } = await supabase
     .from("blogs")
@@ -195,7 +216,10 @@ export async function getAdminBlogById(id: string): Promise<BlogWithCategory | n
 }
 
 export async function getBlogCategories(): Promise<CategorySummary[]> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
 
   const { data, error } = await supabase
     .from("categories")
@@ -211,7 +235,10 @@ export async function getBlogCategories(): Promise<CategorySummary[]> {
 }
 
 export async function getBlogBySlug(slug: string): Promise<BlogWithCategory | null> {
-  const supabase = await createClient();
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
 
   const { data, error } = await supabase
     .from("blogs")
@@ -225,4 +252,128 @@ export async function getBlogBySlug(slug: string): Promise<BlogWithCategory | nu
   }
 
   return (data ?? null) as unknown as BlogWithCategory | null;
+}
+
+export function countBlogsByCategory(blogs: BlogWithCategory[], categoryId: string): number {
+  return blogs.filter((blog) => blog.category_id === categoryId).length;
+}
+
+export async function getPublishedBlogs(): Promise<BlogWithCategory[]> {
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("status", "published")
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    logQueryError("getPublishedBlogs", error.message);
+    return [];
+  }
+
+  return (data ?? []) as unknown as BlogWithCategory[];
+}
+
+export async function getFeaturedBlogs(limit = 3): Promise<BlogWithCategory[]> {
+  const blogs = await getPublishedBlogs();
+  const featured = blogs.filter((blog) => blog.is_featured);
+  const rest = blogs.filter((blog) => !blog.is_featured);
+  return [...featured, ...rest].slice(0, limit);
+}
+
+export async function getPublicBlogBySlug(slug: string): Promise<BlogWithCategory | null> {
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return null;
+  }
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("status", "published")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    logQueryError("getPublicBlogBySlug", error.message);
+    return null;
+  }
+
+  return (data ?? null) as unknown as BlogWithCategory | null;
+}
+
+export function filterBlogsByCategorySlug(
+  blogs: BlogWithCategory[],
+  categorySlug: string,
+): BlogWithCategory[] {
+  return blogs.filter((blog) => blog.categories?.slug === categorySlug);
+}
+
+export async function searchBlogs(query: string): Promise<BlogWithCategory[]> {
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const safe = query
+    .trim()
+    .replace(/[%,()\\"]/g, " ")
+    .replace(/\s+/g, " ")
+    .slice(0, 120);
+
+  if (!safe) {
+    return getPublishedBlogs();
+  }
+
+  const pattern = `%${safe}%`;
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("status", "published")
+    .or(`title.ilike."${pattern}",subtitle.ilike."${pattern}",description.ilike."${pattern}"`)
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    logQueryError("searchBlogs", error.message);
+    return [];
+  }
+
+  return (data ?? []) as unknown as BlogWithCategory[];
+}
+
+export function getRelatedBlogs(
+  blog: BlogWithCategory,
+  blogs: BlogWithCategory[],
+  limit = 3,
+): BlogWithCategory[] {
+  const sameCategory = blogs.filter(
+    (candidate) => candidate.id !== blog.id && candidate.category_id === blog.category_id,
+  );
+  const others = blogs.filter(
+    (candidate) => candidate.id !== blog.id && candidate.category_id !== blog.category_id,
+  );
+  return [...sameCategory, ...others].slice(0, limit);
+}
+
+export async function getSupportRequests(): Promise<SupportRequest[]> {
+  const supabase = await getSupabaseClient();
+  if (!supabase) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("support_requests")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    logQueryError("getSupportRequests", error.message);
+    return [];
+  }
+
+  return (data ?? []) as SupportRequest[];
 }
