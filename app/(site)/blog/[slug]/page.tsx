@@ -13,7 +13,7 @@ import { ShareBar } from "@/components/share-bar";
 import { categoryHref } from "@/lib/categories";
 import {
   getPublicBlogBySlugResult,
-  getPublishedBlogs,
+  getPublishedBlogsResult,
   getRelatedBlogs,
   type QueryError,
 } from "@/lib/queries";
@@ -30,12 +30,32 @@ interface BlogArticlePageProps {
 
 function logBlogError(slug: string, error: QueryError): void {
   console.error("[blog]", {
+    step: error.step,
     slug,
     message: error.message,
     code: error.code,
     details: error.details,
     hint: error.hint,
   });
+}
+
+function pageError(step: string, caught: unknown): QueryError {
+  return {
+    step,
+    message: caught instanceof Error ? caught.message : "Unknown error",
+    code: null,
+    details: null,
+    hint: null,
+  };
+}
+
+function isNextControlError(caught: unknown): boolean {
+  if (typeof caught !== "object" || caught === null || !("digest" in caught)) {
+    return false;
+  }
+
+  const { digest } = caught as { digest?: unknown };
+  return typeof digest === "string" && digest.startsWith("NEXT_HTTP_ERROR_FALLBACK");
 }
 
 function debugLog(slug: string, error: QueryError | null, rowCount: number): void {
@@ -61,62 +81,80 @@ function QueryErrorState({ message }: { message: string }) {
 }
 
 export async function generateMetadata({ params }: BlogArticlePageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const { data: blog, error } = await getPublicBlogBySlugResult(slug);
+  let slug = "unknown";
 
-  debugLog(slug, error, blog ? 1 : 0);
+  try {
+    const resolved = await params;
+    slug = resolved.slug;
+    const { data: blog, error } = await getPublicBlogBySlugResult(slug);
 
-  if (error) {
+    debugLog(slug, error, blog ? 1 : 0);
+
+    if (error) {
+      logBlogError(slug, error);
+      return { title: "Article unavailable", robots: { index: false, follow: false } };
+    }
+
+    if (!blog) {
+      return {
+        title: "Article not found",
+        robots: { index: false, follow: false },
+      };
+    }
+
+    const description = blog.description || makeExcerpt(blog.content);
+    const canonical = `/blog/${blog.slug}`;
+
+    return {
+      title: blog.title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        type: "article",
+        title: blog.title,
+        description,
+        url: canonical,
+        siteName: siteConfig.name,
+        publishedTime: blog.published_at ?? undefined,
+        images: blog.cover_image_url ? [{ url: blog.cover_image_url }] : undefined,
+      },
+    };
+  } catch (caught: unknown) {
+    const error = pageError("blog.metadata", caught);
     logBlogError(slug, error);
     return { title: "Article unavailable", robots: { index: false, follow: false } };
   }
-
-  if (!blog) {
-    return {
-      title: "Article not found",
-      robots: { index: false, follow: false },
-    };
-  }
-
-  const description = blog.description || makeExcerpt(blog.content);
-  const canonical = `/blog/${blog.slug}`;
-
-  return {
-    title: blog.title,
-    description,
-    alternates: { canonical },
-    openGraph: {
-      type: "article",
-      title: blog.title,
-      description,
-      url: canonical,
-      siteName: siteConfig.name,
-      publishedTime: blog.published_at ?? undefined,
-      images: blog.cover_image_url ? [{ url: blog.cover_image_url }] : undefined,
-    },
-  };
 }
 
 export default async function BlogArticlePage({ params }: BlogArticlePageProps) {
-  const { slug } = await params;
-  const { data: blog, error } = await getPublicBlogBySlugResult(slug);
+  let slug = "unknown";
 
-  if (error) {
-    logBlogError(slug, error);
-  }
+  try {
+    const resolved = await params;
+    slug = resolved.slug;
+    const { data: blog, error } = await getPublicBlogBySlugResult(slug);
 
-  debugLog(slug, error, blog ? 1 : 0);
+    if (error) {
+      logBlogError(slug, error);
+    }
 
-  if (error) {
-    return <QueryErrorState message={error.message} />;
-  }
+    debugLog(slug, error, blog ? 1 : 0);
 
-  if (!blog) {
-    notFound();
-  }
+    if (error) {
+      return <QueryErrorState message={error.message} />;
+    }
 
-  const allBlogs = await getPublishedBlogs();
-  const related = getRelatedBlogs(blog, allBlogs, 3);
+    if (!blog) {
+      notFound();
+    }
+
+    const allBlogsResult = await getPublishedBlogsResult("[blog]", slug, 1, 1000, undefined, false);
+    if (allBlogsResult.error) {
+      logBlogError(slug, allBlogsResult.error);
+      return <QueryErrorState message={allBlogsResult.error.message} />;
+    }
+
+    const related = getRelatedBlogs(blog, allBlogsResult.data, 3);
   const description = blog.description || makeExcerpt(blog.content);
   const jsonLd = JSON.stringify({
     "@context": "https://schema.org",
@@ -225,4 +263,13 @@ export default async function BlogArticlePage({ params }: BlogArticlePageProps) 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd }} />
     </>
   );
+  } catch (caught: unknown) {
+    if (isNextControlError(caught)) {
+      throw caught;
+    }
+
+    const error = pageError("blog.page", caught);
+    logBlogError(slug, error);
+    return <QueryErrorState message={error.message} />;
+  }
 }

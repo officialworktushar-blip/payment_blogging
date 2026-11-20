@@ -5,11 +5,11 @@ import { Reveal, RevealItem } from "@/components/animations/reveal";
 import { Container } from "@/components/container";
 import { categoryHref } from "@/lib/categories";
 import { countBlogsByCategory } from "@/lib/queries";
-import type { BlogWithCategory, CategoryRow } from "@/lib/types";
+import type { BlogSummary, CategoryRow } from "@/lib/types";
 
 interface CategorySectionProps {
   categories: CategoryRow[];
-  posts?: BlogWithCategory[];
+  posts?: BlogSummary[];
   title?: string;
   description?: string;
 }

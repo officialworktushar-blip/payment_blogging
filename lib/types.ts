@@ -44,6 +44,22 @@ export interface CategorySummary {
   slug: string;
 }
 
+export interface BlogSummary {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  cover_image_url: string | null;
+  cover_image_alt: string | null;
+  cover_image_note: string | null;
+  author_name: string | null;
+  published_at: string | null;
+  is_featured: boolean;
+  category_id: string | null;
+  categories: CategorySummary | null;
+}
+
 export interface BlogWithCategory extends Blog {
   categories: CategorySummary | null;
 }

@@ -3,11 +3,11 @@ import Link from "next/link";
 import { ArrowUpRight, Clock3 } from "lucide-react";
 import { CategoryPill } from "@/components/category-pill";
 import { ImagePlaceholder } from "@/components/image-placeholder";
-import type { BlogWithCategory } from "@/lib/types";
-import { formatDate, makeExcerpt, readingMinutes } from "@/lib/utils";
+import type { BlogSummary } from "@/lib/types";
+import { formatDate, readingMinutes } from "@/lib/utils";
 
 interface ArticleCardProps {
-  post: BlogWithCategory;
+  post: BlogSummary;
   featured?: boolean;
 }
 
@@ -38,7 +38,7 @@ export function ArticleCard({ post, featured = false }: ArticleCardProps) {
           <span>{formatDate(post.published_at)}</span>
           <span className="inline-flex items-center gap-1">
             <Clock3 aria-hidden="true" size={13} />
-            {readingMinutes(post.content)} min read
+            {readingMinutes(post.description ?? "")} min read
           </span>
         </div>
 
@@ -54,7 +54,7 @@ export function ArticleCard({ post, featured = false }: ArticleCardProps) {
         </h3>
 
         <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">
-          {post.description ?? makeExcerpt(post.content)}
+          {post.description ?? "Read the full guide."}
         </p>
 
         <p className="mt-auto pt-4 text-xs font-medium text-slate-500">

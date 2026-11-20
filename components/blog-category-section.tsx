@@ -6,11 +6,11 @@ import { BlogCard } from "@/components/blog-card";
 import { Container } from "@/components/container";
 import { categoryHref } from "@/lib/categories";
 import { countBlogsByCategory, filterBlogsByCategorySlug } from "@/lib/queries";
-import type { BlogWithCategory, CategoryRow } from "@/lib/types";
+import type { BlogSummary, CategoryRow } from "@/lib/types";
 
 interface BlogCategorySectionProps {
   categories: CategoryRow[];
-  blogs: BlogWithCategory[];
+  blogs: BlogSummary[];
   title?: string;
   description?: string;
 }

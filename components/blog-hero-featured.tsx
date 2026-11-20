@@ -5,13 +5,13 @@ import { FloatingCoins } from "@/components/animations/floating-coins";
 import { PaymentFlowHero } from "@/components/animations/payment-flow-hero";
 import { Reveal } from "@/components/animations/reveal";
 import { Container } from "@/components/container";
-import type { BlogWithCategory } from "@/lib/types";
+import type { BlogSummary } from "@/lib/types";
 
 interface BlogHeroFeaturedProps {
   eyebrow?: string;
   title: string;
   description: string;
-  featuredBlog?: BlogWithCategory | null;
+  featuredBlog?: BlogSummary | null;
   actions?: ReactNode;
 }
 

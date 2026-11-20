@@ -22,12 +22,32 @@ interface CategoryPageProps {
 
 function logCategoryError(slug: string, error: QueryError): void {
   console.error("[category]", {
+    step: error.step,
     slug,
     message: error.message,
     code: error.code,
     details: error.details,
     hint: error.hint,
   });
+}
+
+function pageError(step: string, caught: unknown): QueryError {
+  return {
+    step,
+    message: caught instanceof Error ? caught.message : "Unknown error",
+    code: null,
+    details: null,
+    hint: null,
+  };
+}
+
+function isNextControlError(caught: unknown): boolean {
+  if (typeof caught !== "object" || caught === null || !("digest" in caught)) {
+    return false;
+  }
+
+  const { digest } = caught as { digest?: unknown };
+  return typeof digest === "string" && digest.startsWith("NEXT_HTTP_ERROR_FALLBACK");
 }
 
 function debugLog(
@@ -65,102 +85,122 @@ function QueryErrorState({ message }: { message: string }) {
 }
 
 export async function generateMetadata({ params }: CategoryPageProps): Promise<Metadata> {
-  const { category } = await params;
+  let slug = "unknown";
 
-  if (!isCategorySlug(category)) {
-    return { title: "Category not found", robots: { index: false, follow: false } };
-  }
+  try {
+    const resolved = await params;
+    slug = resolved.category;
 
-  const { data: categoryRow, error } = await getCategoryBySlugResult(category);
+    if (!isCategorySlug(slug)) {
+      return { title: "Category not found", robots: { index: false, follow: false } };
+    }
 
-  if (error) {
-    logCategoryError(category, error);
-  }
+    const { data: categoryRow, error } = await getCategoryBySlugResult(slug);
 
-  debugLog(category, error, null, categoryRow ? 1 : 0);
+    if (error) {
+      logCategoryError(slug, error);
+    }
 
-  if (error) {
+    debugLog(slug, error, null, categoryRow ? 1 : 0);
+
+    if (error) {
+      return { title: "Category unavailable", robots: { index: false, follow: false } };
+    }
+
+    if (!categoryRow) {
+      return { title: "Category not found", robots: { index: false, follow: false } };
+    }
+
+    return {
+      title: categoryRow.name,
+      description: categoryRow.description ?? `PayLens guides about ${categoryRow.name}.`,
+      alternates: { canonical: categoryHref(categoryRow.slug) },
+    };
+  } catch (caught: unknown) {
+    const error = pageError("category.metadata", caught);
+    logCategoryError(slug, error);
     return { title: "Category unavailable", robots: { index: false, follow: false } };
   }
-
-  if (!categoryRow) {
-    return { title: "Category not found", robots: { index: false, follow: false } };
-  }
-
-  return {
-    title: categoryRow.name,
-    description: categoryRow.description ?? `PayLens guides about ${categoryRow.name}.`,
-    alternates: { canonical: categoryHref(categoryRow.slug) },
-  };
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { category } = await params;
+  let slug = "unknown";
 
-  if (!isCategorySlug(category)) {
-    notFound();
+  try {
+    const resolved = await params;
+    slug = resolved.category;
+
+    if (!isCategorySlug(slug)) {
+      notFound();
+    }
+
+    const { data: categoryRow, error: categoryError } = await getCategoryBySlugResult(slug);
+
+    if (categoryError) {
+      logCategoryError(slug, categoryError);
+      debugLog(slug, categoryError, null, 0);
+      return <QueryErrorState message={categoryError.message} />;
+    }
+
+    if (!categoryRow) {
+      debugLog(slug, null, null, 0);
+      notFound();
+    }
+
+    const blogResult = await getPublishedBlogsByCategoryIdResult(categoryRow.id, slug);
+    const blogs = blogResult.data;
+
+    if (blogResult.error) {
+      logCategoryError(slug, blogResult.error);
+    }
+
+    debugLog(slug, categoryError, blogResult.error, blogs.length);
+
+    if (blogResult.error) {
+      return <QueryErrorState message={blogResult.error.message} />;
+    }
+
+    return (
+      <Container className="py-10">
+        <Breadcrumbs items={[{ label: categoryRow.name }]} />
+
+        <Reveal>
+          <p className="mt-7 text-xs font-semibold uppercase tracking-widest text-brand-700">Category</p>
+          <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-navy-900">
+            {categoryRow.name}
+          </h1>
+          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
+            {categoryRow.description ?? "Guides and explainers in this topic."}
+          </p>
+        </Reveal>
+
+        <div className="mt-9">
+          {blogs.length > 0 ? (
+            <Reveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {blogs.map((blog) => (
+                <RevealItem key={blog.id} className="h-full">
+                  <BlogCard blog={blog} />
+                </RevealItem>
+              ))}
+            </Reveal>
+          ) : (
+            <EmptyState
+              title="No articles in this category yet"
+              description="Check back soon, or browse the full article library in the meantime."
+              href="/blog"
+              label="Browse articles"
+            />
+          )}
+        </div>
+      </Container>
+    );
+  } catch (caught: unknown) {
+    if (isNextControlError(caught)) {
+      throw caught;
+    }
+
+    const error = pageError("category.page", caught);
+    logCategoryError(slug, error);
+    return <QueryErrorState message={error.message} />;
   }
-
-  const { data: categoryRow, error: categoryError } = await getCategoryBySlugResult(category);
-
-  if (categoryError) {
-    logCategoryError(category, categoryError);
-    debugLog(category, categoryError, null, 0);
-    return <QueryErrorState message={categoryError.message} />;
-  }
-
-  if (!categoryRow) {
-    debugLog(category, null, null, 0);
-    notFound();
-  }
-
-  const { data: blogs, error: blogsError } = await getPublishedBlogsByCategoryIdResult(
-    categoryRow.id,
-    category,
-  );
-
-  if (blogsError) {
-    logCategoryError(category, blogsError);
-  }
-
-  debugLog(category, categoryError, blogsError, blogs.length);
-
-  if (blogsError) {
-    return <QueryErrorState message={blogsError.message} />;
-  }
-
-  return (
-    <Container className="py-10">
-      <Breadcrumbs items={[{ label: categoryRow.name }]} />
-
-      <Reveal>
-        <p className="mt-7 text-xs font-semibold uppercase tracking-widest text-brand-700">Category</p>
-        <h1 className="mt-2 font-serif text-4xl font-semibold tracking-tight text-navy-900">
-          {categoryRow.name}
-        </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600">
-          {categoryRow.description ?? "Guides and explainers in this topic."}
-        </p>
-      </Reveal>
-
-      <div className="mt-9">
-        {blogs.length > 0 ? (
-          <Reveal className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {blogs.map((blog) => (
-              <RevealItem key={blog.id} className="h-full">
-                <BlogCard blog={blog} />
-              </RevealItem>
-            ))}
-          </Reveal>
-        ) : (
-          <EmptyState
-            title="No articles in this category yet"
-            description="Check back soon, or browse the full article library in the meantime."
-            href="/blog"
-            label="Browse articles"
-          />
-        )}
-      </div>
-    </Container>
-  );
 }

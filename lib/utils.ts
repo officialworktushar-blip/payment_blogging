@@ -5,8 +5,8 @@ export function makeSlug(value: string): string {
   return result.length > 0 ? result : `item-${Date.now()}`;
 }
 
-export function stripHtml(html: string): string {
-  return html
+export function stripHtml(html: string | null | undefined): string {
+  return (html ?? "")
     .replace(/<[^>]*>/g, " ")
     .replace(/&nbsp;/g, " ")
     .replace(/&amp;/g, "&")
@@ -17,12 +17,12 @@ export function stripHtml(html: string): string {
     .trim();
 }
 
-export function readingMinutes(content: string): number {
+export function readingMinutes(content: string | null | undefined): number {
   const words = stripHtml(content).split(" ").filter(Boolean).length;
   return Math.max(1, Math.ceil(words / 220));
 }
 
-export function makeExcerpt(html: string, maxLength = 170): string {
+export function makeExcerpt(html: string | null | undefined, maxLength = 170): string {
   const text = stripHtml(html);
   if (text.length <= maxLength) {
     return text;
@@ -30,7 +30,7 @@ export function makeExcerpt(html: string, maxLength = 170): string {
   return `${text.slice(0, maxLength).trimEnd()}...`;
 }
 
-export function formatDate(value: string | null): string {
+export function formatDate(value: string | null | undefined): string {
   if (!value) {
     return "Draft";
   }
@@ -48,8 +48,8 @@ export function formatDate(value: string | null): string {
   }).format(parsed);
 }
 
-export function sanitizeHtml(input: string): string {
-  return input
+export function sanitizeHtml(input: string | null | undefined): string {
+  return (input ?? "")
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
     .replace(/<object[\s\S]*?<\/object>/gi, "")
