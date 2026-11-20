@@ -14,8 +14,8 @@ interface AdminNavItem {
 
 const adminNav: AdminNavItem[] = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard, exact: true },
-  { href: "/admin/posts", label: "All Blogs", icon: FileText },
-  { href: "/admin/posts/new", label: "Add New Blog", icon: Plus },
+  { href: "/admin/blogs", label: "All Blogs", icon: FileText },
+  { href: "/admin/blogs/new", label: "Add New Blog", icon: Plus },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
   { href: "/admin/support-requests", label: "Support Requests", icon: LifeBuoy },
 ];

@@ -132,6 +132,14 @@
     @apply h-auto w-full rounded-xl border border-slate-200;
   }
 
+  .article-content .image-placeholder {
+    @apply rounded-xl border border-dashed border-brand-300 bg-brand-50 px-4 py-3 text-sm text-slate-600;
+  }
+
+  .article-content .image-placeholder-wrapper {
+    @apply my-4;
+  }
+
   .article-content .ProseMirror {
     @apply min-h-[280px] outline-none;
   }

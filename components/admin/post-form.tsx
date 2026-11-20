@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
+import { CoverImageUpload } from "@/components/admin/cover-image-upload";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { savePost } from "@/lib/actions";
 import type { CategoryRow, PostStatus, PostWithCategory } from "@/lib/types";
@@ -25,6 +26,7 @@ export function PostForm({ categories, post }: PostFormProps) {
   const [author, setAuthor] = useState(post?.author ?? "PayLens Team");
   const [status, setStatus] = useState<PostStatus>(post?.status === "published" ? "published" : "draft");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -178,16 +180,15 @@ export function PostForm({ categories, post }: PostFormProps) {
               </div>
 
               <div>
-                <label htmlFor="post-cover" className="mb-1.5 block text-xs font-medium text-slate-600">
-                  Cover image URL
-                </label>
-                <input
-                  id="post-cover"
-                  type="url"
-                  value={coverImage}
-                  onChange={(event) => setCoverImage(event.target.value)}
-                  className={fieldClass}
-                  placeholder="https://..."
+                <p className="mb-1.5 text-xs font-medium text-slate-600">Cover image</p>
+                <CoverImageUpload
+                  value={coverImage || null}
+                  alt=""
+                  note=""
+                  onChange={(url) => setCoverImage(url ?? "")}
+                  onAltChange={() => undefined}
+                  onNoteChange={() => undefined}
+                  onUploadingChange={setUploading}
                 />
               </div>
             </div>
@@ -204,11 +205,11 @@ export function PostForm({ categories, post }: PostFormProps) {
       <div className="flex items-center gap-3">
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || uploading}
           className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save aria-hidden="true" size={16} />
-          {saving ? "Saving..." : post ? "Save changes" : "Create article"}
+          {saving ? "Saving..." : uploading ? "Uploading..." : post ? "Save changes" : "Create article"}
         </button>
       </div>
     </form>

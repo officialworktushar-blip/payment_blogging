@@ -52,10 +52,50 @@ export interface CategoryInput {
   description: string | null;
 }
 
+export interface BlogRow {
+  id: string;
+  title: string;
+  subtitle: string | null;
+  slug: string;
+  description: string | null;
+  content: string;
+  category_id: string | null;
+  cover_image_url: string | null;
+  cover_image_alt: string | null;
+  cover_image_note: string | null;
+  author_name: string | null;
+  status: string;
+  is_featured: boolean;
+  published_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface BlogWithCategory extends BlogRow {
+  categories: CategorySummary | null;
+}
+
+export interface BlogInput {
+  id?: string;
+  title: string;
+  subtitle: string;
+  slug: string;
+  description: string;
+  content: string;
+  categoryId: string | null;
+  coverImageUrl: string | null;
+  coverImageAlt: string;
+  coverImageNote: string;
+  authorName: string;
+  status: PostStatus;
+  isFeatured: boolean;
+}
+
 export interface ActionResult {
   ok: boolean;
   error?: string;
   id?: string;
+  slug?: string;
 }
 
 export interface Database {

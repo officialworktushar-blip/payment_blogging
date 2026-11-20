@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { EditorContent, useEditor, type Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapImage from "@tiptap/extension-image";
@@ -8,8 +8,8 @@ import TiptapLink from "@tiptap/extension-link";
 import {
   Bold,
   Code2,
-  Heading1,
   Heading2,
+  Heading3,
   ImagePlus,
   Italic,
   Link2,
@@ -18,12 +18,21 @@ import {
   Quote,
   Redo2,
   Undo2,
+  Upload,
 } from "lucide-react";
 import { getWordCountStorage, WordCount } from "@/components/admin/word-count-extension";
+import {
+  createPlaceholderDataId,
+  ensurePlaceholderIds,
+  getPlaceholderStorage,
+  ImagePlaceholder,
+} from "@/components/admin/image-placeholder-extension";
+import { uploadImage } from "@/lib/uploadImage";
 
 interface RichTextEditorProps {
   value: string;
   onChange: (value: string) => void;
+  onUploadingChange?: (uploading: boolean) => void;
 }
 
 interface ToolButtonProps {
@@ -55,17 +64,46 @@ function ToolButton({ label, active = false, disabled = false, onClick, children
 }
 
 function readWordCount(editor: Editor): number {
-  const storage = getWordCountStorage(editor);
-  return storage?.words ?? 0;
+  return getWordCountStorage(editor)?.words ?? 0;
 }
 
-export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
+function hasPendingPlaceholderUploads(editor: Editor | null): boolean {
+  if (!editor) {
+    return false;
+  }
+
+  const pending = getPlaceholderStorage(editor)?.pending ?? {};
+  return Object.values(pending).some(Boolean);
+}
+
+export function RichTextEditor({ value, onChange, onUploadingChange }: RichTextEditorProps) {
+  const editorRef = useRef<Editor | null>(null);
   const [words, setWords] = useState(0);
   const [, setTick] = useState(0);
   const [notice, setNotice] = useState("");
+  const [localUploading, setLocalUploading] = useState(0);
 
-  const syncCount = useCallback((editor: Editor) => {
-    setWords(readWordCount(editor));
+  const syncCount = useCallback((current: Editor) => {
+    setWords(readWordCount(current));
+  }, []);
+
+  const uploadAndInsert = useCallback(async (file: File) => {
+    const current = editorRef.current;
+    if (!current) {
+      return;
+    }
+
+    setNotice("");
+    setLocalUploading((count) => count + 1);
+
+    try {
+      const { url } = await uploadImage(file, "content");
+      current.chain().focus().setImage({ src: url, alt: "Article illustration" }).run();
+    } catch (caught: unknown) {
+      setNotice(caught instanceof Error ? caught.message : "Upload failed.");
+    } finally {
+      setLocalUploading((count) => count - 1);
+    }
   }, []);
 
   const editor = useEditor({
@@ -78,10 +116,41 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         autolink: true,
         protocols: ["http", "https", "mailto"],
       }),
+      ImagePlaceholder,
       WordCount,
     ],
     content: value,
+    editorProps: {
+      handlePaste: (_view, event) => {
+        const file = Array.from(event.clipboardData?.items ?? [])
+          .find((item) => item.type.startsWith("image/"))
+          ?.getAsFile();
+
+        if (!file) {
+          return false;
+        }
+
+        event.preventDefault();
+        void uploadAndInsert(file);
+        return true;
+      },
+      handleDrop: (_view, event) => {
+        const file = Array.from(event.dataTransfer?.files ?? []).find((item) =>
+          item.type.startsWith("image/"),
+        );
+
+        if (!file) {
+          return false;
+        }
+
+        event.preventDefault();
+        void uploadAndInsert(file);
+        return true;
+      },
+    },
     onCreate: ({ editor: current }) => {
+      editorRef.current = current;
+      ensurePlaceholderIds(current);
       syncCount(current);
     },
     onUpdate: ({ editor: current }) => {
@@ -102,18 +171,21 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     return () => {
       editor.off("selectionUpdate", refresh);
       editor.off("transaction", refresh);
+      editorRef.current = null;
     };
   }, [editor]);
 
-  if (!editor) {
-    return (
-      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
-        Loading editor...
-      </div>
-    );
-  }
+  const busy = localUploading > 0 || hasPendingPlaceholderUploads(editor);
+
+  useEffect(() => {
+    onUploadingChange?.(busy);
+  }, [busy, onUploadingChange]);
 
   function setLink() {
+    if (!editor) {
+      return;
+    }
+
     const current = window.prompt("Link URL (https://example.com)", "https://example.com");
     if (current === null) {
       return;
@@ -134,24 +206,49 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     editor.chain().focus().setLink({ href: trimmed }).run();
   }
 
-  function addImage() {
-    const current = window.prompt("Image URL (https://...)");
-    if (current === null) {
+  function openImagePicker() {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/jpeg,image/png,image/webp";
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (file) {
+        void uploadAndInsert(file);
+      }
+    };
+    input.click();
+  }
+
+  function addImageBox() {
+    if (!editor) {
       return;
     }
 
-    const trimmed = current.trim();
-    if (trimmed.length === 0) {
+    const answer = window.prompt(
+      "What image or mockup is needed?",
+      "Describe the diagram or screenshot",
+    );
+    if (answer === null) {
       return;
     }
 
-    if (!/^https:\/\//i.test(trimmed)) {
-      setNotice("Images must use an https:// URL.");
-      return;
-    }
+    const description = answer.trim() || "Image or mockup";
+    editor
+      .chain()
+      .focus()
+      .insertContent({
+        type: "imagePlaceholder",
+        attrs: { dataId: createPlaceholderDataId(), description },
+      })
+      .run();
+  }
 
-    setNotice("");
-    editor.chain().focus().setImage({ src: trimmed, alt: "Article illustration" }).run();
+  if (!editor) {
+    return (
+      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500">
+        Loading editor...
+      </div>
+    );
   }
 
   return (
@@ -172,18 +269,18 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           <Italic aria-hidden="true" size={16} />
         </ToolButton>
         <ToolButton
-          label="Heading 1"
-          active={editor.isActive("heading", { level: 1 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        >
-          <Heading1 aria-hidden="true" size={16} />
-        </ToolButton>
-        <ToolButton
           label="Heading 2"
           active={editor.isActive("heading", { level: 2 })}
           onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
         >
           <Heading2 aria-hidden="true" size={16} />
+        </ToolButton>
+        <ToolButton
+          label="Heading 3"
+          active={editor.isActive("heading", { level: 3 })}
+          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+        >
+          <Heading3 aria-hidden="true" size={16} />
         </ToolButton>
         <ToolButton
           label="Bullet list"
@@ -207,16 +304,19 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           <Quote aria-hidden="true" size={16} />
         </ToolButton>
         <ToolButton
-          label="Inline code"
-          active={editor.isActive("code")}
-          onClick={() => editor.chain().focus().toggleCode().run()}
+          label="Code block"
+          active={editor.isActive("codeBlock")}
+          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
         >
           <Code2 aria-hidden="true" size={16} />
         </ToolButton>
         <ToolButton label="Add or edit link" onClick={setLink}>
           <Link2 aria-hidden="true" size={16} />
         </ToolButton>
-        <ToolButton label="Add image" onClick={addImage}>
+        <ToolButton label="Upload image" disabled={busy} onClick={openImagePicker}>
+          <Upload aria-hidden="true" size={16} />
+        </ToolButton>
+        <ToolButton label="Add image box" disabled={busy} onClick={addImageBox}>
           <ImagePlus aria-hidden="true" size={16} />
         </ToolButton>
         <span className="mx-1 h-6 w-px bg-slate-200" aria-hidden="true" />
@@ -243,13 +343,16 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
 
       <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 px-4 py-2 text-xs text-slate-500">
         <span>
-          {words} words | {""}
-          {getWordCountStorage(editor)?.characters ?? 0} characters
+          {words} words | {getWordCountStorage(editor)?.characters ?? 0} characters
         </span>
         <span>Use fictional examples such as 4111 xxxx xxxx 1111 and user@example.</span>
       </div>
 
-      {notice ? <p className="border-t border-amber-200 bg-amber-50 px-4 py-2 text-xs text-amber-800">{notice}</p> : null}
+      {notice ? (
+        <p className="border-t border-error/30 bg-error-light px-4 py-2 text-xs text-error-dark">
+          {notice}
+        </p>
+      ) : null}
     </div>
   );
 }

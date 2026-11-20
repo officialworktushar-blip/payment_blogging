@@ -67,11 +67,11 @@ A payments education blog built with Next.js 16 (App Router), TypeScript, Tailwi
 
 ## Editing content
 
-Sign in to `/admin`, add categories, then create an article. The Tiptap editor supports headings, lists, quotes, inline code, links and images. Status can be `draft` or `published`; publishing calls `revalidatePath` so public routes refresh immediately. Blog and category routes are dynamic and do not use `generateStaticParams`.
+Sign in to `/admin` and use `/admin/blogs` to create and manage blogs. The shared form at `/admin/blogs/new` and `/admin/blogs/[id]/edit` includes a Tiptap editor with H2/H3, lists, quotes, code blocks, links, direct image uploads and image placeholder boxes. Status can be `draft` or `published`; publishing calls `revalidatePath` so public routes refresh immediately. Blog and category routes are dynamic and do not use `generateStaticParams`.
 
 ## Admin access
 
-Run `supabase/schema.sql`, create a Supabase Auth user, then insert that email into `public.admin_users`. `/admin/login` accepts email and password only; there is no public sign-up. `middleware.ts` refreshes the session and redirects unauthenticated or unauthorised users away from every `/admin/*` route except `/admin/login`. The admin sidebar links to Dashboard, All Blogs, Add New Blog, Categories and Support Requests.
+Run `supabase/schema.sql` and `supabase/storage_policies.sql`, create a Supabase Auth user, then insert that email into `public.admin_users`. `/admin/login` accepts email and password only; there is no public sign-up. `middleware.ts` refreshes the session and redirects unauthenticated or unauthorised users away from every `/admin/*` route except `/admin/login`. The admin sidebar links to Dashboard, All Blogs, Add New Blog, Categories and Support Requests. Images are uploaded from the browser to the public `blog-images` bucket after client-side WebP conversion.
 
 ## Placeholder details
 

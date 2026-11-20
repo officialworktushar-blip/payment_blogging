@@ -19,7 +19,7 @@ export function SignOutButton() {
     let supabase: SupabaseBrowserClient;
     try {
       supabase = createClient();
-    } catch (caughtError) {
+    } catch (caughtError: unknown) {
       const message = caughtError instanceof Error ? caughtError.message : "Unable to sign out.";
       setError(message);
       setPending(false);

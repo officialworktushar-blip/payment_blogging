@@ -26,7 +26,7 @@ export function LoginForm({ initialError = "" }: LoginFormProps) {
     let supabase: SupabaseBrowserClient;
     try {
       supabase = createClient();
-    } catch (caughtError) {
+    } catch (caughtError: unknown) {
       const message = caughtError instanceof Error ? caughtError.message : "Unable to initialise Supabase.";
       setError(message);
       setPending(false);

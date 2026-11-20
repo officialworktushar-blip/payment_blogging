@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import type { CategoryRow, PostWithCategory } from "@/lib/types";
+import type { BlogWithCategory, CategoryRow, CategorySummary, PostWithCategory } from "@/lib/types";
 
 function logQueryError(context: string, message: string): void {
   console.error(`${context}: ${message}`);
@@ -159,4 +159,70 @@ export function countPostsByCategory(
   categoryId: string,
 ): number {
   return posts.filter((post) => post.category_id === categoryId).length;
+}
+
+export async function getAdminBlogs(): Promise<BlogWithCategory[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .order("updated_at", { ascending: false });
+
+  if (error) {
+    logQueryError("getAdminBlogs", error.message);
+    return [];
+  }
+
+  return (data ?? []) as unknown as BlogWithCategory[];
+}
+
+export async function getAdminBlogById(id: string): Promise<BlogWithCategory | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    logQueryError("getAdminBlogById", error.message);
+    return null;
+  }
+
+  return (data ?? null) as unknown as BlogWithCategory | null;
+}
+
+export async function getBlogCategories(): Promise<CategorySummary[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("categories")
+    .select("id, name, slug")
+    .order("name", { ascending: true });
+
+  if (error) {
+    logQueryError("getBlogCategories", error.message);
+    return [];
+  }
+
+  return (data ?? []) as CategorySummary[];
+}
+
+export async function getBlogBySlug(slug: string): Promise<BlogWithCategory | null> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("blogs")
+    .select("*, categories(id, name, slug)")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (error) {
+    logQueryError("getBlogBySlug", error.message);
+    return null;
+  }
+
+  return (data ?? null) as unknown as BlogWithCategory | null;
 }
